@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 
 # ===== ТОКЕН =====
-TOKEN = '8672284943:AAGrO68cDybiidNBehyS0Dcst5wj0BcGjLAU'
+TOKEN = '8672284943:AAEVBa7F9rKGQK76pkLr0vvHyDXKFCJDFos'
 # =================
 
 bot = telebot.TeleBot(TOKEN)
