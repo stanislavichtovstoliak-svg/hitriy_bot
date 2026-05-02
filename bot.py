@@ -36,23 +36,23 @@ DEFAULT_USER = {
     'last_work': None, 'username': None, 'total_earned': 0,
     'last_daily': None, 'daily_streak': 0, 'promos': [],
     'work_count': 0, 'slot_wins': 0, 'roulette_wins': 0,
-    'bet_wins': 0, 'achievements': []
+    'bet_wins': 0, 'coin_wins': 0, 'achievements': []
 }
 
-# ========== НОВЫЕ ПРОФЕССИИ (12 УРОВНЕЙ) ==========
+# ========== ПРОФЕССИИ (12 УРОВНЕЙ) ==========
 LEVELS = {
-    1: {"name": "🫣 Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
-    2: {"name": "🛵 Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
-    3: {"name": "🔧 Автомеханик", "salary_min": 30, "salary_max": 120, "exp_needed": 250},
-    4: {"name": "📦 Кладовщик", "salary_min": 50, "salary_max": 160, "exp_needed": 450},
-    5: {"name": "🍕 Доставщик", "salary_min": 70, "salary_max": 200, "exp_needed": 700},
-    6: {"name": "🛠 Сварщик", "salary_min": 90, "salary_max": 240, "exp_needed": 1000},
-    7: {"name": "📊 Менеджер", "salary_min": 120, "salary_max": 280, "exp_needed": 1400},
-    8: {"name": "🏦 Бухгалтер", "salary_min": 150, "salary_max": 320, "exp_needed": 1900},
-    9: {"name": "🏗 Прораб", "salary_min": 180, "salary_max": 360, "exp_needed": 2500},
-    10: {"name": "👔 Директор", "salary_min": 220, "salary_max": 420, "exp_needed": 3200},
-    11: {"name": "💎 Бизнесмен", "salary_min": 260, "salary_max": 480, "exp_needed": 4000},
-    12: {"name": "👑 Магнат", "salary_min": 300, "salary_max": 600, "exp_needed": 5000},
+    1: {"name": "Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
+    2: {"name": "Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
+    3: {"name": "Автомеханик", "salary_min": 30, "salary_max": 120, "exp_needed": 250},
+    4: {"name": "Кладовщик", "salary_min": 50, "salary_max": 160, "exp_needed": 450},
+    5: {"name": "Доставщик", "salary_min": 70, "salary_max": 200, "exp_needed": 700},
+    6: {"name": "Сварщик", "salary_min": 90, "salary_max": 240, "exp_needed": 1000},
+    7: {"name": "Менеджер", "salary_min": 120, "salary_max": 280, "exp_needed": 1400},
+    8: {"name": "Бухгалтер", "salary_min": 150, "salary_max": 320, "exp_needed": 1900},
+    9: {"name": "Прораб", "salary_min": 180, "salary_max": 360, "exp_needed": 2500},
+    10: {"name": "Директор", "salary_min": 220, "salary_max": 420, "exp_needed": 3200},
+    11: {"name": "Бизнесмен", "salary_min": 260, "salary_max": 480, "exp_needed": 4000},
+    12: {"name": "Магнат", "salary_min": 300, "salary_max": 600, "exp_needed": 5000},
 }
 
 ACHIEVEMENTS = {
@@ -63,6 +63,7 @@ ACHIEVEMENTS = {
     'win_slot': {'name': "Счастливчик", 'reward': 50},
     'win_roulette': {'name': "Фортуна", 'reward': 50},
     'win_bet': {'name': "Лучший каппер", 'reward': 100},
+    'win_coin': {'name': "Орлянщик", 'reward': 50},
     'money_1000': {'name': "Тысячник", 'reward': 200},
     'money_5000': {'name': "Богач", 'reward': 700},
     'money_10000': {'name': "Магнат", 'reward': 1500},
@@ -75,7 +76,6 @@ ACHIEVEMENTS = {
     'daily_streak_30': {'name': "Железный", 'reward': 3000},
 }
 
-# ========== НОВЫЙ ПРОМОКОД ==========
 PROMOCODES = {
     'шепельпрезидент': {'money': 2000, 'exp': 200},
     'тест': {'money': 2, 'exp': 0},
@@ -99,23 +99,24 @@ FAIL_MESSAGES = {
     "Магнат": ["Банкротство филиала! -{}💰", "Рейдерский захват! -{}💰"],
 }
 
-# ========== МАШИНЫ ДЛЯ СТАВОК ==========
-CARS = [
-    {"name": "🏎️ ФЕРРАРИ", "emoji": "🏎️", "coefficient": 6.0, "chance": 10},
-    {"name": "🚗 ЛАМБОРДЖИНИ", "emoji": "🚗", "coefficient": 4.0, "chance": 15},
-    {"name": "🚙 ПОРШЕ", "emoji": "🚙", "coefficient": 3.0, "chance": 20},
-    {"name": "🚕 БМВ", "emoji": "🚕", "coefficient": 2.5, "chance": 25},
-    {"name": "🚓 АУДИ", "emoji": "🚓", "coefficient": 2.0, "chance": 30},
-    {"name": "🚜 ЗАПОРОЖЕЦ", "emoji": "🚜", "coefficient": 10.0, "chance": 5},
+# ========== ЛОШАДИ ДЛЯ СТАВОК ==========
+HORSES = [
+    {"name": "🐎 МОЛНИЯ", "emoji": "🐎", "coefficient": 6.0, "chance": 10},
+    {"name": "🐎 ВЕТЕР", "emoji": "🐎", "coefficient": 4.0, "chance": 15},
+    {"name": "🐎 ГРОМ", "emoji": "🐎", "coefficient": 3.0, "chance": 20},
+    {"name": "🐎 МОЛОТ", "emoji": "🐎", "coefficient": 2.5, "chance": 25},
+    {"name": "🐎 СТРЕЛА", "emoji": "🐎", "coefficient": 2.0, "chance": 30},
+    {"name": "🐎 ТИХОНЯ", "emoji": "🐎", "coefficient": 10.0, "chance": 5},
 ]
 
 # ========== ПЕРЕМЕННЫЕ ==========
 slot_waiting = {}
 roulette_waiting = {}
-race_active = False
-race_bets = {}
-race_events = []
-race_start_time = None
+coin_waiting = {}
+horse_race_active = False
+horse_race_bets = {}
+horse_race_events = []
+horse_race_start_time = None
 
 # ========== ФУНКЦИИ ==========
 def get_user(user_id, username=None):
@@ -144,6 +145,7 @@ def check_achievements(uid):
     if user['slot_wins'] >= 1 and 'win_slot' not in user['achievements']: new.append('win_slot')
     if user['roulette_wins'] >= 1 and 'win_roulette' not in user['achievements']: new.append('win_roulette')
     if user['bet_wins'] >= 1 and 'win_bet' not in user['achievements']: new.append('win_bet')
+    if user['coin_wins'] >= 1 and 'win_coin' not in user['achievements']: new.append('win_coin')
     if user['money'] >= 1000 and 'money_1000' not in user['achievements']: new.append('money_1000')
     if user['money'] >= 5000 and 'money_5000' not in user['achievements']: new.append('money_5000')
     if user['money'] >= 10000 and 'money_10000' not in user['achievements']: new.append('money_10000')
@@ -187,40 +189,6 @@ def get_top():
     top.sort(key=lambda x: x[1], reverse=True)
     return top[:10]
 
-# ========== СОБЫТИЯ В ГОНКЕ ==========
-def get_random_event():
-    events = [
-        {"name": "💥 АВАРИЯ! {} врезался в стену!", "effect": "slow", "value": 1.5},
-        {"name": "⛽ ПИТ-СТОП! {} заехал на дозаправку!", "effect": "slow", "value": 1.3},
-        {"name": "🚦 ШТРАФ! {} превысил скорость!", "effect": "slow", "value": 1.2},
-        {"name": "⚡ РАЗГОН! {} поймал воздушную яму!", "effect": "slow", "value": 1.1},
-        {"name": "🔥 НИТРО! {} активировал закись азота!", "effect": "fast", "value": 0.7},
-        {"name": "🏎️ ОБГОН! {} совершил крутой маневр!", "effect": "fast", "value": 0.8},
-        {"name": "🍀 УДАЧА! {} сократил отставание!", "effect": "fast", "value": 0.85},
-        {"name": "💪 РЫВОК! {} прибавил на прямой!", "effect": "fast", "value": 0.75},
-    ]
-    return random.choice(events)
-
-def race_event_loop(chat_id):
-    global race_events
-    start_time = time.time()
-    last_event = start_time
-    
-    while race_active:
-        now = time.time()
-        if now - last_event >= 15:
-            if random.randint(1, 100) <= 40:
-                car = random.choice(CARS)
-                event = get_random_event()
-                event_text = event["name"].format(car["name"])
-                race_events.append(event_text)
-                try:
-                    bot.send_message(chat_id, f"🏁 {event_text}")
-                except:
-                    pass
-            last_event = now
-        time.sleep(1)
-
 # ========== КОМАНДЫ ==========
 
 @bot.message_handler(commands=['start'])
@@ -241,7 +209,8 @@ def show_commands(message):
     msg += f"--- ИГРЫ ---\n"
     msg += f"• рулетка - игра в рулетку\n"
     msg += f"• слоты - слоты 3x3\n"
-    msg += f"• гонка - сделать ставку на гонку\n\n"
+    msg += f"• орел / решка - игра с монеткой\n"
+    msg += f"• скачки - сделать ставку на скачки\n\n"
     msg += f"--- ЗАРАБОТОК ---\n"
     msg += f"• работа - работа (КД 10 мин)\n"
     msg += f"• бонус - ежедневный (КД 12 ч)\n\n"
@@ -250,12 +219,6 @@ def show_commands(message):
     msg += f"• профиль - статистика\n"
     msg += f"• топ - топ богатых\n"
     msg += f"• достижения - список ачивок\n\n"
-    msg += f"--- ПРОМОКОДЫ ---\n"
-    msg += f"• #промо шепельпрезидент\n"
-    msg += f"• #промо тест\n"
-    msg += f"• #промо куниза200шекелей\n"
-    msg += f"• #промо ялюблюгрибы\n"
-    msg += f"• #промо яустал\n"
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['баланс', 'деньги'])
@@ -604,39 +567,111 @@ def roulette_amount(message):
     bot.send_message(message.chat.id, msg)
     del roulette_waiting[uid]
 
-# ========== ГОНКИ (СТАВКИ) ==========
+# ========== ОРЁЛ/РЕШКА ==========
 
-def start_race(chat_id):
-    global race_active, race_bets, race_events, race_start_time
-    time.sleep(60)
-    
-    if not race_active:
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['орел', 'решка', 'орел/решка', 'монетка'])
+def coin_game(message):
+    uid = message.from_user.id
+    coin_waiting[uid] = 'waiting_bet'
+    bot.send_message(message.chat.id, "🪙 ОРЁЛ/РЕШКА 🪙\n\n💰 Введи сумму ставки (мин 10):")
+
+@bot.message_handler(func=lambda m: m.from_user.id in coin_waiting and coin_waiting[m.from_user.id] == 'waiting_bet')
+def coin_get_bet(message):
+    uid = message.from_user.id
+    try:
+        bet = int(message.text.strip())
+        if bet < 10:
+            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        del coin_waiting[uid]
         return
     
-    # Итоги гонки
-    total_chance = sum(c['chance'] for c in CARS)
+    user = get_user(uid, message.from_user.username)
+    if user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!")
+        del coin_waiting[uid]
+        return
+    
+    coin_waiting[uid] = bet
+
+@bot.message_handler(func=lambda m: m.from_user.id in coin_waiting and isinstance(coin_waiting[m.from_user.id], int))
+def coin_choose(message):
+    uid = message.from_user.id
+    bet = coin_waiting[uid]
+    choice = message.text.lower()
+    
+    if choice not in ['орел', 'решка']:
+        bot.send_message(message.chat.id, "❌ Выбери 'орел' или 'решка'!")
+        return
+    
+    # Подбрасываем монетку
+    result = random.choice(['орел', 'решка'])
+    win = 0
+    
+    if choice == result:
+        win = bet * 2
+        user = get_user(uid, message.from_user.username)
+        user['money'] += win
+        user['total_earned'] += win
+        user['coin_wins'] += 1
+        add_exp(uid, win // 4)
+        save_data(data)
+        msg = f"🪙 ОРЁЛ/РЕШКА 🪙\n\n"
+        msg += f"🎲 Ты выбрал: {choice.upper()}\n"
+        msg += f"🎲 Выпало: {result.upper()}\n"
+        msg += f"✨ ПОБЕДА! +{win} шекелей ✨\n"
+        msg += f"💵 Баланс: {user['money']}"
+        
+        ach = check_achievements(uid)
+        if ach:
+            msg += ach
+    else:
+        user = get_user(uid, message.from_user.username)
+        user['money'] -= bet
+        user['total_earned'] -= bet
+        save_data(data)
+        msg = f"🪙 ОРЁЛ/РЕШКА 🪙\n\n"
+        msg += f"🎲 Ты выбрал: {choice.upper()}\n"
+        msg += f"🎲 Выпало: {result.upper()}\n"
+        msg += f"💔 ПРОИГРЫШ! -{bet} шекелей 💔\n"
+        msg += f"💵 Баланс: {user['money']}"
+    
+    bot.send_message(message.chat.id, msg)
+    del coin_waiting[uid]
+
+# ========== СКАЧКИ ==========
+
+def start_horse_race(chat_id):
+    global horse_race_active, horse_race_bets, horse_race_events
+    time.sleep(60)
+    
+    if not horse_race_active:
+        return
+    
+    total_chance = sum(h['chance'] for h in HORSES)
     roll = random.randint(1, total_chance)
     cum = 0
     winner = None
-    for car in CARS:
-        cum += car['chance']
+    for horse in HORSES:
+        cum += horse['chance']
         if roll <= cum:
-            winner = car
+            winner = horse
             break
     
-    # Формируем результаты
-    results = f"🏁 ГОНКА ЗАВЕРШЕНА! 🏁\n\n"
+    results = f"🏁 СКАЧКИ ЗАВЕРШЕНЫ! 🏁\n\n"
     results += f"🥇 ПОБЕДИТЕЛЬ: {winner['emoji']} {winner['name']} (коэф. x{winner['coefficient']})\n\n"
     
-    if race_events:
-        results += f"📋 СОБЫТИЯ ГОНКИ:\n"
-        for event in race_events[-5:]:  # последние 5 событий
+    if horse_race_events:
+        results += f"📋 СОБЫТИЯ СКАЧЕК:\n"
+        for event in horse_race_events[-5:]:
             results += f"• {event}\n"
         results += f"\n"
     
     winners_list = []
-    for car_name, bet_data in race_bets.items():
-        if car_name == winner['name']:
+    for horse_name, bet_data in horse_race_bets.items():
+        if horse_name == winner['name']:
             for bet in bet_data['bets']:
                 uid = bet['uid']
                 amount = bet['amount']
@@ -653,40 +688,36 @@ def start_race(chat_id):
     else:
         results += "💔 НЕТ ВЫИГРЫШЕЙ"
     
-    # Рассылаем
-    for car_name, bet_data in race_bets.items():
+    for horse_name, bet_data in horse_race_bets.items():
         try:
             bot.send_message(bet_data['chat_id'], results)
         except:
             pass
     
-    # Сбрасываем
-    race_active = False
-    race_bets = {}
-    race_events = []
+    horse_race_active = False
+    horse_race_bets = {}
+    horse_race_events = []
     save_data(data)
 
-def race_event_loop(chat_id):
-    global race_events, race_active
+def horse_race_event_loop(chat_id):
+    global horse_race_events, horse_race_active
     last_event = time.time()
     
-    while race_active:
+    while horse_race_active:
         now = time.time()
         if now - last_event >= 15:
             if random.randint(1, 100) <= 40:
-                car = random.choice(CARS)
+                horse = random.choice(HORSES)
                 events = [
-                    f"💥 {car['name']} врезался в стену!",
-                    f"⛽ {car['name']} заехал на пит-стоп!",
-                    f"🚦 {car['name']} получил штраф!",
-                    f"⚡ {car['name']} поймал воздушную яму!",
-                    f"🔥 {car['name']} активировал нитро!",
-                    f"🏎️ {car['name']} совершил обгон!",
-                    f"🍀 {car['name']} повезло на трассе!",
-                    f"💪 {car['name']} прибавил на прямой!",
+                    f"💥 {horse['name']} споткнулся!",
+                    f"🏇 {horse['name']} ускорился!",
+                    f"🐎 {horse['name']} обошел соперника!",
+                    f"⚡ {horse['name']} набрал скорость!",
+                    f"💪 {horse['name']} делает рывок!",
+                    f"🍀 {horse['name']} повезло на финише!",
                 ]
                 event_text = random.choice(events)
-                race_events.append(event_text)
+                horse_race_events.append(event_text)
                 try:
                     bot.send_message(chat_id, f"🏁 {event_text}")
                 except:
@@ -694,70 +725,63 @@ def race_event_loop(chat_id):
             last_event = now
         time.sleep(1)
 
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['гонка', 'ставка', 'ставки'])
-def race_bet_menu(message):
-    global race_active, race_bets, race_start_time, race_events
-    uid = message.from_user.id
-    user = get_user(uid, message.from_user.username)
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['скачки', 'ставка', 'тотализатор'])
+def horse_race_bet_menu(message):
+    global horse_race_active, horse_race_bets, horse_race_events
     
-    if race_active:
-        # Показываем меню ставок
+    if horse_race_active:
         kb = telebot.types.InlineKeyboardMarkup(row_width=2)
-        for car in CARS:
-            kb.add(telebot.types.InlineKeyboardButton(f"{car['emoji']} {car['name']} x{car['coefficient']}", callback_data=f'race_{car["name"]}'))
-        bot.send_message(message.chat.id, "🏁 СТАВКИ НА ГОНКУ 🏁\n\nВыбери машину:", reply_markup=kb)
+        for horse in HORSES:
+            kb.add(telebot.types.InlineKeyboardButton(f"{horse['emoji']} {horse['name']} x{horse['coefficient']}", callback_data=f'hrace_{horse["name"]}'))
+        bot.send_message(message.chat.id, "🏁 СТАВКИ НА СКАЧКИ 🏁\n\nВыбери лошадь:", reply_markup=kb)
         return
     
-    # Начинаем новую гонку
-    race_active = True
-    race_bets = {}
-    race_events = []
-    race_start_time = time.time()
+    horse_race_active = True
+    horse_race_bets = {}
+    horse_race_events = []
     
-    # Запускаем таймер
-    timer_thread = threading.Thread(target=start_race, args=(message.chat.id,), daemon=True)
+    timer_thread = threading.Thread(target=start_horse_race, args=(message.chat.id,), daemon=True)
     timer_thread.start()
     
-    # Запускаем события
-    event_thread = threading.Thread(target=race_event_loop, args=(message.chat.id,), daemon=True)
+    event_thread = threading.Thread(target=horse_race_event_loop, args=(message.chat.id,), daemon=True)
     event_thread.start()
     
-    msg = "🏁 НОВАЯ ГОНКА НАЧАЛАСЬ! 🏁\n\n"
+    msg = "🏁 НОВЫЕ СКАЧКИ НАЧАЛИСЬ! 🏁\n\n"
     msg += "⏰ 1 минута на ставки!\n\n"
-    msg += "🏎️ МАШИНЫ И КОЭФФИЦИЕНТЫ:\n"
-    for car in CARS:
-        msg += f"{car['emoji']} {car['name']} - x{car['coefficient']} (шанс {car['chance']}%)\n"
+    msg += "🐎 УЧАСТНИКИ И КОЭФФИЦИЕНТЫ:\n"
+    for horse in HORSES:
+        msg += f"{horse['emoji']} {horse['name']} - x{horse['coefficient']} (шанс {horse['chance']}%)\n"
     
-    msg += f"\n⏳ Гонка начнется через 60 секунд!\n"
-    msg += f"📝 Делай ставку командой 'гонка'"
+    msg += f"\n⏳ Скачки начнутся через 60 секунд!\n"
+    msg += f"📝 Делай ставку командой 'скачки'"
     
     bot.send_message(message.chat.id, msg)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('race_'))
-def race_choose_car(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith('hrace_'))
+def horse_race_choose(call):
     uid = call.from_user.id
-    car_name = call.data.split('_')[1]
+    horse_name = call.data.split('_')[1]
     
-    car = None
-    for c in CARS:
-        if c['name'] == car_name:
-            car = c
+    horse = None
+    for h in HORSES:
+        if h['name'] == horse_name:
+            horse = h
             break
     
-    if not car:
-        bot.answer_callback_query(call.id, "❌ Машина не найдена!", show_alert=True)
+    if not horse:
+        bot.answer_callback_query(call.id, "❌ Лошадь не найдена!", show_alert=True)
         return
     
-    bot.edit_message_text(f"🏁 СТАВКА НА {car['emoji']} {car['name']} 🏁\n\n💰 Введи сумму ставки (мин 10):", 
+    bot.edit_message_text(f"🏁 СТАВКА НА {horse['emoji']} {horse['name']} 🏁\n\n💰 Введи сумму ставки (мин 10):", 
                           call.message.chat.id, call.message.message_id)
     bot.answer_callback_query(call.id)
     
-    slot_waiting[uid] = f'race_bet_{car["name"]}'
+    slot_waiting[uid] = f'hrace_bet_{horse["name"]}'
 
-@bot.message_handler(func=lambda m: m.from_user.id in slot_waiting and slot_waiting[m.from_user.id].startswith('race_bet_'))
-def race_get_bet(message):
+@bot.message_handler(func=lambda m: m.from_user.id in slot_waiting and slot_waiting[m.from_user.id].startswith('hrace_bet_'))
+def horse_race_get_bet(message):
     uid = message.from_user.id
-    car_name = slot_waiting[uid].replace('race_bet_', '')
+    horse_name = slot_waiting[uid].replace('hrace_bet_', '')
     
     try:
         amount = int(message.text.strip())
@@ -774,25 +798,25 @@ def race_get_bet(message):
         del slot_waiting[uid]
         return
     
-    if not race_active:
-        bot.send_message(message.chat.id, "❌ Гонка уже началась! Жди следующей!")
+    if not horse_race_active:
+        bot.send_message(message.chat.id, "❌ Скачки уже начались! Жди следующих!")
         del slot_waiting[uid]
         return
     
     user['money'] -= amount
     save_data(data)
     
-    if car_name not in race_bets:
-        race_bets[car_name] = {'bets': [], 'chat_id': message.chat.id}
-    race_bets[car_name]['bets'].append({'uid': uid, 'amount': amount})
+    if horse_name not in horse_race_bets:
+        horse_race_bets[horse_name] = {'bets': [], 'chat_id': message.chat.id}
+    horse_race_bets[horse_name]['bets'].append({'uid': uid, 'amount': amount})
     
-    car = next((c for c in CARS if c['name'] == car_name), None)
+    horse = next((h for h in HORSES if h['name'] == horse_name), None)
     
     bot.send_message(message.chat.id, 
         f"✅ СТАВКА ПРИНЯТА!\n\n"
-        f"🏎️ {car['emoji']} {car_name}\n"
+        f"🐎 {horse['emoji']} {horse_name}\n"
         f"💰 Сумма: {amount} шекелей\n"
-        f"📊 Коэффициент: x{car['coefficient']}\n"
+        f"📊 Коэффициент: x{horse['coefficient']}\n"
         f"💵 Ваш баланс: {user['money']}")
     
     del slot_waiting[uid]
@@ -801,10 +825,10 @@ def race_get_bet(message):
 print("=" * 50)
 print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
 print("12 УРОВНЕЙ ПРОФЕССИЙ!")
-print("НОВЫЙ ПРОМОКОД: #промо яустал (228💰)")
+print("ОРЁЛ/РЕШКА - работает!")
+print("СКАЧКИ - работают!")
 print("Слоты - работают")
 print("Рулетка - работает")
-print("Гонки - работают")
 print("Сохранения - железобетонные")
 print("=" * 50)
 
