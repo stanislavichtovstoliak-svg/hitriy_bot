@@ -66,40 +66,40 @@ DEFAULT_USER = {
 
 # ========== ПРОФЕССИИ (12 УРОВНЕЙ) ==========
 LEVELS = {
-    1: {"name": "🫣 Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
-    2: {"name": "🛵 Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
-    3: {"name": "🔧 Автомеханик", "salary_min": 30, "salary_max": 120, "exp_needed": 250},
-    4: {"name": "📦 Кладовщик", "salary_min": 50, "salary_max": 160, "exp_needed": 450},
-    5: {"name": "🍕 Доставщик", "salary_min": 70, "salary_max": 200, "exp_needed": 700},
-    6: {"name": "🛠 Сварщик", "salary_min": 90, "salary_max": 240, "exp_needed": 1000},
-    7: {"name": "📊 Менеджер", "salary_min": 120, "salary_max": 280, "exp_needed": 1400},
-    8: {"name": "🏦 Бухгалтер", "salary_min": 150, "salary_max": 320, "exp_needed": 1900},
-    9: {"name": "🏗 Прораб", "salary_min": 180, "salary_max": 360, "exp_needed": 2500},
-    10: {"name": "👔 Директор", "salary_min": 220, "salary_max": 420, "exp_needed": 3200},
-    11: {"name": "💎 Бизнесмен", "salary_min": 260, "salary_max": 480, "exp_needed": 4000},
-    12: {"name": "👑 Магнат", "salary_min": 300, "salary_max": 600, "exp_needed": 5000},
+    1: {"name": "Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
+    2: {"name": "Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
+    3: {"name": "Автомеханик", "salary_min": 30, "salary_max": 120, "exp_needed": 250},
+    4: {"name": "Кладовщик", "salary_min": 50, "salary_max": 160, "exp_needed": 450},
+    5: {"name": "Доставщик", "salary_min": 70, "salary_max": 200, "exp_needed": 700},
+    6: {"name": "Сварщик", "salary_min": 90, "salary_max": 240, "exp_needed": 1000},
+    7: {"name": "Менеджер", "salary_min": 120, "salary_max": 280, "exp_needed": 1400},
+    8: {"name": "Бухгалтер", "salary_min": 150, "salary_max": 320, "exp_needed": 1900},
+    9: {"name": "Прораб", "salary_min": 180, "salary_max": 360, "exp_needed": 2500},
+    10: {"name": "Директор", "salary_min": 220, "salary_max": 420, "exp_needed": 3200},
+    11: {"name": "Бизнесмен", "salary_min": 260, "salary_max": 480, "exp_needed": 4000},
+    12: {"name": "Магнат", "salary_min": 300, "salary_max": 600, "exp_needed": 5000},
 }
 
 # ========== МАГАЗИН ==========
 SHOP_ITEMS = {
-    1: {'name': '⚡ Ускорение работы', 'price': 500, 'duration': 3600, 'effect': 'work_cooldown', 'value': 300},
-    2: {'name': '⭐ Двойной опыт', 'price': 300, 'duration': 3600, 'effect': 'exp_multiplier', 'value': 2},
-    3: {'name': '🛡️ Защита от неудач', 'price': 200, 'duration': 3, 'effect': 'no_fail', 'value': 3},
-    4: {'name': '📈 +25% к зарплате', 'price': 400, 'duration': 86400, 'effect': 'salary_multiplier', 'value': 1.25},
+    1: {'name': 'Ускорение работы', 'price': 500, 'duration': 3600, 'effect': 'work_cooldown', 'value': 300},
+    2: {'name': 'Двойной опыт', 'price': 300, 'duration': 3600, 'effect': 'exp_multiplier', 'value': 2},
+    3: {'name': 'Защита от неудач', 'price': 200, 'duration': 3, 'effect': 'no_fail', 'value': 3},
+    4: {'name': '+25% к зарплате', 'price': 400, 'duration': 86400, 'effect': 'salary_multiplier', 'value': 1.25},
 }
 
 # ========== АЧИВКИ ==========
 ACHIEVEMENTS = {
-    'work_10': {'name': "📦 Трудоголик", 'reward': 100}, 'work_50': {'name': "🏭 Стахановец", 'reward': 500},
-    'work_100': {'name': "💪 Машина", 'reward': 1000}, 'work_500': {'name': "🤖 Терминатор", 'reward': 5000},
-    'win_slot': {'name': "🎰 Счастливчик", 'reward': 50}, 'win_roulette': {'name': "🎡 Фортуна", 'reward': 50},
-    'win_bet': {'name': "🏇 Лучший каппер", 'reward': 100}, 'money_1000': {'name': "💰 Тысячник", 'reward': 200},
-    'money_5000': {'name': "💎 Богач", 'reward': 700}, 'money_10000': {'name': "👑 Магнат", 'reward': 1500},
-    'money_50000': {'name': "🏦 Крез", 'reward': 5000}, 'level_5': {'name': "📈 Профи", 'reward': 300},
-    'level_8': {'name': "⭐ Эксперт", 'reward': 700}, 'level_10': {'name': "🏆 Мастер", 'reward': 1200},
-    'level_12': {'name': "👑 Легенда", 'reward': 2000}, 'daily_streak': {'name': "🔥 Серийный", 'reward': 500},
-    'daily_streak_30': {'name': "💪 Железный", 'reward': 3000}, 'lotto_win': {'name': "🍀 Везунчик", 'reward': 500},
-    'lotto_win_3': {'name': "👑 Король лотереи", 'reward': 2000}, 'bank_first': {'name': "🏦 Инвестор", 'reward': 200},
+    'work_10': {'name': "Трудоголик", 'reward': 100}, 'work_50': {'name': "Стахановец", 'reward': 500},
+    'work_100': {'name': "Машина", 'reward': 1000}, 'work_500': {'name': "Терминатор", 'reward': 5000},
+    'win_slot': {'name': "Счастливчик", 'reward': 50}, 'win_roulette': {'name': "Фортуна", 'reward': 50},
+    'win_bet': {'name': "Лучший каппер", 'reward': 100}, 'money_1000': {'name': "Тысячник", 'reward': 200},
+    'money_5000': {'name': "Богач", 'reward': 700}, 'money_10000': {'name': "Магнат", 'reward': 1500},
+    'money_50000': {'name': "Крез", 'reward': 5000}, 'level_5': {'name': "Профи", 'reward': 300},
+    'level_8': {'name': "Эксперт", 'reward': 700}, 'level_10': {'name': "Мастер", 'reward': 1200},
+    'level_12': {'name': "Легенда", 'reward': 2000}, 'daily_streak': {'name': "Серийный", 'reward': 500},
+    'daily_streak_30': {'name': "Железный", 'reward': 3000}, 'lotto_win': {'name': "Везунчик", 'reward': 500},
+    'lotto_win_3': {'name': "Король лотереи", 'reward': 2000}, 'bank_first': {'name': "Инвестор", 'reward': 200},
 }
 
 # ========== ПРОМОКОДЫ ==========
@@ -134,28 +134,28 @@ HORSES = [
 
 # ========== ЗАДАНИЯ ==========
 QUESTS = [
-    {"name": "🎰 Счастливчик", "desc": "Сыграть в слоты 3 раза", "type": "slot", "target": 3, "reward": 200},
-    {"name": "🎡 Фортуна", "desc": "Выиграть в рулетку 2 раза", "type": "roulette_win", "target": 2, "reward": 150},
-    {"name": "🏇 Каппер", "desc": "Сделать 5 ставок", "type": "bet", "target": 5, "reward": 300},
-    {"name": "💰 Труженик", "desc": "Заработать 500💰", "type": "earn", "target": 500, "reward": 200},
-    {"name": "🌾 Работяга", "desc": "Поработать 10 раз", "type": "work", "target": 10, "reward": 250},
-    {"name": "🏆 Победитель", "desc": "Выиграть в скачках 2 раза", "type": "bet_win", "target": 2, "reward": 350},
+    {"name": "Счастливчик", "desc": "Сыграть в слоты 3 раза", "type": "slot", "target": 3, "reward": 200},
+    {"name": "Фортуна", "desc": "Выиграть в рулетку 2 раза", "type": "roulette_win", "target": 2, "reward": 150},
+    {"name": "Каппер", "desc": "Сделать 5 ставок", "type": "bet", "target": 5, "reward": 300},
+    {"name": "Труженик", "desc": "Заработать 500💰", "type": "earn", "target": 500, "reward": 200},
+    {"name": "Работяга", "desc": "Поработать 10 раз", "type": "work", "target": 10, "reward": 250},
+    {"name": "Победитель", "desc": "Выиграть в скачках 2 раза", "type": "bet_win", "target": 2, "reward": 350},
 ]
 
 # ========== СООБЩЕНИЯ НЕУДАЧ ==========
 FAIL_MESSAGES = {
-    "Грузчик": ["💥 Уронил ящик! -{}💰", "📦 Разбил вазу! -{}💰"],
-    "Курьер": ["🛵 Проткнул колесо! -{}💰", "📬 Потерял посылку! -{}💰"],
-    "Автомеханик": ["🔧 Сорвал резьбу! -{}💰", "⚡ Забыл затянуть колесо! -{}💰"],
-    "Кладовщик": ["📦 Перепутал товар! -{}💰", "🏷 Потерял накладную! -{}💰"],
-    "Доставщик": ["🍕 Пролил кофе клиенту! -{}💰", "📦 Перепутал заказ! -{}💰"],
-    "Сварщик": ["🔥 Прожег дыру! -{}💰", "💣 Уронил баллон! -{}💰"],
-    "Менеджер": ["📞 Поссорился с клиентом! -{}💰", "💼 Провалил презентацию! -{}💰"],
-    "Бухгалтер": ["📊 Ошибся в отчетности! -{}💰", "🧾 Потерял чеки! -{}💰"],
-    "Прораб": ["🏗 Бригада не вышла! -{}💰", "🔥 Сгорел материал! -{}💰"],
-    "Директор": ["🏢 Неудачная сделка! -{}💰", "📉 Акции упали! -{}💰"],
-    "Бизнесмен": ["💎 Крипта обвалилась! -{}💰", "🤝 Партнер кинул! -{}💰"],
-    "Магнат": ["🏦 Банкротство филиала! -{}💰", "⚔️ Рейдерский захват! -{}💰"],
+    "Грузчик": ["Уронил ящик! -{}💰", "Разбил вазу! -{}💰"],
+    "Курьер": ["Проткнул колесо! -{}💰", "Потерял посылку! -{}💰"],
+    "Автомеханик": ["Сорвал резьбу! -{}💰", "Забыл затянуть колесо! -{}💰"],
+    "Кладовщик": ["Перепутал товар! -{}💰", "Потерял накладную! -{}💰"],
+    "Доставщик": ["Пролил кофе клиенту! -{}💰", "Перепутал заказ! -{}💰"],
+    "Сварщик": ["Прожег дыру! -{}💰", "Уронил баллон! -{}💰"],
+    "Менеджер": ["Поссорился с клиентом! -{}💰", "Провалил презентацию! -{}💰"],
+    "Бухгалтер": ["Ошибся в отчетности! -{}💰", "Потерял чеки! -{}💰"],
+    "Прораб": ["Бригада не вышла! -{}💰", "Сгорел материал! -{}💰"],
+    "Директор": ["Неудачная сделка! -{}💰", "Акции упали! -{}💰"],
+    "Бизнесмен": ["Крипта обвалилась! -{}💰", "Партнер кинул! -{}💰"],
+    "Магнат": ["Банкротство филиала! -{}💰", "Рейдерский захват! -{}💰"],
 }
 
 # ========== ПЕРЕМЕННЫЕ ==========
@@ -278,13 +278,13 @@ def profile_cmd(message):
     
     buffs = ""
     for key, buff in user.get('shop_buffs', {}).items():
-        if key == 'speed' and buff.get('active_until', 0) > now:
+        if key == 'work_cooldown' and buff.get('active_until', 0) > now:
             buffs += f"\n⚡ Ускорение работы ({int((buff['active_until']-now)/60)} мин)"
-        elif key == 'double_exp' and buff.get('active_until', 0) > now:
+        elif key == 'exp_multiplier' and buff.get('active_until', 0) > now:
             buffs += f"\n⭐ Двойной опыт ({int((buff['active_until']-now)/60)} мин)"
-        elif key == 'salary_boost' and buff.get('active_until', 0) > now:
+        elif key == 'salary_multiplier' and buff.get('active_until', 0) > now:
             buffs += f"\n📈 +25% зарплаты ({int((buff['active_until']-now)/3600)} ч)"
-        elif key == 'protection' and buff.get('uses', 0) > 0:
+        elif key == 'no_fail' and buff.get('uses', 0) > 0:
             buffs += f"\n🛡️ Защита от неудач (осталось {buff['uses']})"
     
     bank_info = ""
@@ -344,12 +344,26 @@ def balance_cmd(m):
     u = get_user(m.from_user.id, m.from_user.username)
     bot.send_message(m.chat.id, f"💰 *БАЛАНС* 💰\n\n💵 {u['money']} шекелей\n⭐ Опыт: {u['exp']}", parse_mode='Markdown')
 
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
+def top_cmd(m):
+    top = get_top()
+    if not top:
+        bot.send_message(m.chat.id, "🏆 Топ пока пуст!")
+        return
+    msg = "🏆 *ТОП БОГАТЫХ* 🏆\n\n"
+    for i, (name, money) in enumerate(top, 1):
+        if i == 1: msg += f"👑 *{i}. @{name}* — {money}💰\n"
+        elif i == 2: msg += f"🥈 *{i}. @{name}* — {money}💰\n"
+        elif i == 3: msg += f"🥉 *{i}. @{name}* — {money}💰\n"
+        else: msg += f"{i}. @{name} — {money}💰\n"
+    bot.send_message(m.chat.id, msg, parse_mode='Markdown')
+
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['работа', 'фарм'])
 def work_cmd(m):
     uid = m.from_user.id
     u = get_user(uid, m.from_user.username)
     lvl = LEVELS[u['level']]
-    cd = 300 if u.get('shop_buffs', {}).get('speed', {}).get('active_until', 0) > time.time() else 600
+    cd = 300 if u.get('shop_buffs', {}).get('work_cooldown', {}).get('active_until', 0) > time.time() else 600
     
     if u.get('last_work'):
         last = datetime.fromisoformat(u['last_work'])
@@ -360,19 +374,19 @@ def work_cmd(m):
             return
     
     base = random.randint(lvl['salary_min'], lvl['salary_max'])
-    if u.get('shop_buffs', {}).get('salary_boost', {}).get('active_until', 0) > time.time():
+    if u.get('shop_buffs', {}).get('salary_multiplier', {}).get('active_until', 0) > time.time():
         base = int(base * 1.25)
     
-    if random.randint(1, 100) <= 5 and not (u.get('shop_buffs', {}).get('protection', {}).get('uses', 0) > 0):
+    if random.randint(1, 100) <= 5 and not (u.get('shop_buffs', {}).get('no_fail', {}).get('uses', 0) > 0):
         penalty = random.randint(int(base*0.3), int(base*0.7))
         u['money'] -= penalty
         u['total_earned'] -= penalty
-        msg = f"😫 *НЕУДАЧА!*\n\n💼 {lvl['name']}\n{random.choice(FAIL_MESSAGES[lvl['name'].replace('🫣 ','').replace('🛵 ','').replace('🔧 ','').replace('📦 ','').replace('🍕 ','').replace('🛠 ','').replace('📊 ','').replace('🏦 ','').replace('🏗 ','').replace('👔 ','').replace('💎 ','').replace('👑 ','')]).format(penalty)}\n💵 Баланс: {u['money']}"
+        msg = f"😫 *НЕУДАЧА!*\n\n💼 {lvl['name']}\n{random.choice(FAIL_MESSAGES[lvl['name']]).format(penalty)}\n💵 Баланс: {u['money']}"
     else:
-        if u.get('shop_buffs', {}).get('protection', {}).get('uses', 0) > 0:
-            u['shop_buffs']['protection']['uses'] -= 1
-            if u['shop_buffs']['protection']['uses'] <= 0:
-                del u['shop_buffs']['protection']
+        if u.get('shop_buffs', {}).get('no_fail', {}).get('uses', 0) > 0:
+            u['shop_buffs']['no_fail']['uses'] -= 1
+            if u['shop_buffs']['no_fail']['uses'] <= 0:
+                del u['shop_buffs']['no_fail']
         u['money'] += base
         u['total_earned'] += base
         u['work_count'] += 1
@@ -455,6 +469,21 @@ def achievements_cmd(m):
     msg += f"\n📊 Получено: {len(u.get('achievements',[]))}/{len(ACHIEVEMENTS)}"
     bot.send_message(m.chat.id, msg, parse_mode='Markdown')
 
+# ========== СЕКРЕТНАЯ АЧИВКА ==========
+@bot.message_handler(func=lambda m: m.text and all(w in m.text.lower() for w in ['шепель', 'лох', 'нищий', 'бомж']))
+def secret_achievement(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
+    if 'secret' in u.get('achievements', []):
+        bot.send_message(m.chat.id, "❌ Ты уже получил секретную награду!")
+        return
+    u['achievements'].append('secret')
+    u['money'] += 5555
+    u['total_earned'] += 5555
+    add_exp(uid, 555)
+    save_all()
+    bot.send_message(m.chat.id, f"🔓 *СЕКРЕТНАЯ АЧИВКА!*\n\n🏆 ШЕПЕЛЬФЕСТ\n💰 +5555💰\n⭐ +555⭐\n💵 Баланс: {u['money']}", parse_mode='Markdown')
+
 # ========== МАГАЗИН ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower() == 'магазин')
 def shop_cmd(m):
@@ -490,10 +519,10 @@ def buy_cmd(m):
     if 'shop_buffs' not in u: u['shop_buffs'] = {}
     now = time.time()
     if item_id == 3:
-        if 'protection' in u['shop_buffs']:
-            u['shop_buffs']['protection']['uses'] += item['value']
+        if 'no_fail' in u['shop_buffs']:
+            u['shop_buffs']['no_fail']['uses'] += item['value']
         else:
-            u['shop_buffs']['protection'] = {'uses': item['value'], 'active_until': now + 86400}
+            u['shop_buffs']['no_fail'] = {'uses': item['value'], 'active_until': now + 86400}
     else:
         u['shop_buffs'][item['effect']] = {'active_until': now + item['duration']}
     save_all()
@@ -568,11 +597,13 @@ def lotto_timer():
         time.sleep(60)
 
 def reset_lotto():
+    global lotto_data
     lotto_data['tickets'] = {}
     lotto_data['winner_today'] = False
     save_all()
 
 def draw_lotto():
+    global lotto_data
     tickets = lotto_data.get('tickets', {})
     if not tickets:
         lotto_data['winner_today'] = True
@@ -774,6 +805,7 @@ def horse_race_event_loop(chat_id):
 
 def start_horse_race(chat_id):
     time.sleep(60)
+    global horse_race_active, horse_race_bets, horse_race_events
     if not horse_race_active: return
     winner = random.choices([h['name'] for h in HORSES], weights=[h['chance'] for h in HORSES])[0]
     w_horse = next(h for h in HORSES if h['name'] == winner)
@@ -798,7 +830,6 @@ def start_horse_race(chat_id):
     for hname, bd in horse_race_bets.items():
         try: bot.send_message(bd['chat_id'], res, parse_mode='Markdown')
         except: pass
-    global horse_race_active, horse_race_bets, horse_race_events
     horse_race_active = False
     horse_race_bets = {}
     horse_race_events = []
