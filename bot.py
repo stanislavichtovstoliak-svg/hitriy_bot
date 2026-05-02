@@ -26,21 +26,50 @@ LEVELS = {
     8: {"name": "Магнат", "salary_min": 250, "salary_max": 500, "exp_needed": 3000},
 }
 
+# ===== ЖЕЛЕЗОБЕТОННЫЕ СОХРАНЕНИЯ =====
+
 def load_users():
+    """Загрузка данных с проверкой целостности"""
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                print(f"✅ Загружено {len(data)} профилей")
+                return data
+        except Exception as e:
+            print(f"❌ Ошибка загрузки: {e}")
+            # Создаем резервную копию
+            if os.path.exists(DATA_FILE):
+                backup_file = DATA_FILE + '.backup'
+                os.rename(DATA_FILE, backup_file)
+                print(f"📁 Создана резервная копия: {backup_file}")
+            return {}
     return {}
 
 def save_users(users):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
+    """Мгновенное сохранение с проверкой"""
+    try:
+        # Сначала сохраняем в временный файл
+        temp_file = DATA_FILE + '.tmp'
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+        # Затем переименовываем
+        os.replace(temp_file, DATA_FILE)
+        print(f"💾 Сохранено {len(users)} профилей")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка сохранения: {e}")
+        return False
 
+# Принудительная загрузка при старте
 users = load_users()
 
 def get_user(user_id, username=None):
+    """Получение пользователя с автоматическим созданием"""
     user_id = str(user_id)
+    
     if user_id not in users:
+        # Новый пользователь
         users[user_id] = {
             'money': 500,
             'level': 1,
@@ -53,10 +82,13 @@ def get_user(user_id, username=None):
             'daily_streak': 0
         }
         save_users(users)
+        print(f"🆕 Новый игрок: @{username} (ID: {user_id})")
     else:
+        # Обновляем юзернейм если нужно
         if username and users[user_id].get('username') != username:
             users[user_id]['username'] = username
             save_users(users)
+    
     return users[user_id]
 
 def get_level_info(level):
@@ -107,6 +139,7 @@ def handle_all_messages(message):
     username = message.from_user.username
     text = message.text.lower().strip()
     
+    # Принудительное обновление юзернейма при каждом действии
     user = get_user(user_id, username)
     
     if text in ['/start', 'start']:
@@ -282,12 +315,18 @@ def roulette_menu_command(message):
     user_id = message.from_user.id
     active_menus[user_id] = 'roulette'
     
-    kb = telebot.types.InlineKeyboardMarkup()
-    kb.add(telebot.types.InlineKeyboardButton("🔴 КРАСНОЕ", callback_data='roulette_red'))
-    kb.add(telebot.types.InlineKeyboardButton("⚫ ЧЕРНОЕ", callback_data='roulette_black'))
-    kb.add(telebot.types.InlineKeyboardButton("🟢 ЗЕЛЕНЫЙ (0)", callback_data='roulette_green'))
-    kb.add(telebot.types.InlineKeyboardButton("📊 ЧЕТ", callback_data='roulette_even'))
-    kb.add(telebot.types.InlineKeyboardButton("📊 НЕЧЕТ", callback_data='roulette_odd'))
+    kb = telebot.types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        telebot.types.InlineKeyboardButton("🔴 КРАСНОЕ", callback_data='roulette_red'),
+        telebot.types.InlineKeyboardButton("⚫ ЧЕРНОЕ", callback_data='roulette_black')
+    )
+    kb.add(
+        telebot.types.InlineKeyboardButton("🟢 ЗЕЛЕНЫЙ (0)", callback_data='roulette_green'),
+        telebot.types.InlineKeyboardButton("📊 ЧЕТ", callback_data='roulette_even')
+    )
+    kb.add(
+        telebot.types.InlineKeyboardButton("📊 НЕЧЕТ", callback_data='roulette_odd')
+    )
     
     bot.send_message(message.chat.id, "🎡 РУЛЕТКА 🎡\n\nВыбери тип ставки:", reply_markup=kb)
 
@@ -300,8 +339,6 @@ def roulette_bet(call):
         return
     
     bet_type = call.data.split('_')[1]
-    
-    # Запрашиваем сумму ставки
     active_menus[user_id] = f'roulette_bet_{bet_type}'
     bot.send_message(call.message.chat.id, "💰 Введи сумму ставки (минимум 10 шекелей):")
     bot.answer_callback_query(call.id)
@@ -324,15 +361,15 @@ def roulette_place_bet(message):
     
     if user['money'] < bet:
         bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!")
+        del active_menus[user_id]
         return
     
     user['money'] -= bet
+    save_users(users)
     
-    # Результат рулетки (число от 0 до 36)
     result_num = random.randint(0, 36)
-    result_color = 'green' if result_num == 0 else ('red' if result_num % 2 == 1 else 'black')
+    result_color = 'green' if result_num == 0 else ('red' if result_num in range(1, 19) and result_num % 2 == 1 else 'black')
     
-    # Проверка выигрыша
     win = 0
     if bet_type == 'red' and result_color == 'red':
         win = bet * 2
@@ -345,7 +382,6 @@ def roulette_place_bet(message):
     elif bet_type == 'odd' and result_num > 0 and result_num % 2 == 1:
         win = bet * 2
     
-    # Цвет для отображения
     color_emoji = '🟢' if result_color == 'green' else ('🔴' if result_color == 'red' else '⚫')
     bet_names = {'red': 'КРАСНОЕ', 'black': 'ЧЕРНОЕ', 'green': 'ЗЕЛЕНЫЙ (0)', 'even': 'ЧЕТ', 'odd': 'НЕЧЕТ'}
     
@@ -353,19 +389,20 @@ def roulette_place_bet(message):
         user['money'] += win
         user['total_earned'] += win
         add_exp(user_id, win // 4)
+        save_users(users)
         msg = f"🎡 РУЛЕТКА 🎡\n\n"
         msg += f"Выпало: {color_emoji} {result_num}\n"
         msg += f"Твоя ставка: {bet_names[bet_type]}\n"
         msg += f"💰 ВЫИГРЫШ: +{win} шекелей!\n"
         msg += f"💵 Баланс: {user['money']}"
     else:
+        save_users(users)
         msg = f"🎡 РУЛЕТКА 🎡\n\n"
         msg += f"Выпало: {color_emoji} {result_num}\n"
         msg += f"Твоя ставка: {bet_names[bet_type]}\n"
         msg += f"💔 ПРОИГРЫШ: -{bet} шекелей\n"
         msg += f"💵 Баланс: {user['money']}"
     
-    save_users(users)
     bot.send_message(message.chat.id, msg)
     del active_menus[user_id]
 
@@ -653,11 +690,12 @@ def bj_stand(call):
 
 # ===== ЗАПУСК =====
 
-print("=" * 40)
+print("=" * 50)
 print("🤖 ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
-print("✅ Ежедневный бонус: КД 12 часов")
-print("✅ Рулетка: красное/черное/зеленый/чет/нечет")
-print("🎮 Команды: работа, бонус, рулетка, слоты, блекджек, баланс, профиль, топ")
-print("=" * 40)
+print("✅ ЖЕЛЕЗОБЕТОННЫЕ СОХРАНЕНИЯ ВКЛЮЧЕНЫ!")
+print("🎁 Ежедневный бонус: КД 12 часов")
+print("🎡 Рулетка: красное/черное/зеленый/чет/нечет")
+print("🎮 Команды: работа, бонус, рулетка, слоты, блекджек")
+print("=" * 50)
 
 bot.infinity_polling()
