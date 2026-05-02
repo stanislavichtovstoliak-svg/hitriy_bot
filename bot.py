@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta
 import time
 import re
-
+import os
 # ===== ВСТАВЬ СВОЙ ТОКЕН СЮДА =====
 TOKEN = '8672284943:AAGHqbF-6F-JXYUAe-rgTdhiXQwwv_4nZ9k'
 # ===================================
