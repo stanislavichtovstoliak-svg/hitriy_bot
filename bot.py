@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 
 # Токен из переменных окружения Railway
-TOKEN = os.environ.get('8672284943:AAFtNxZNTR95r_dbbq_lb9sXldVlVk200ag')
+TOKEN = os.environ.get('8672284943:AAGr068cDybidNBehyS0Dcst5wj0BcGjLAU')
 
 if not TOKEN:
     print("ОШИБКА: Токен не найден!")
