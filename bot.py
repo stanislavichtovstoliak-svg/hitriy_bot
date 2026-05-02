@@ -2,7 +2,8 @@ import telebot
 import random
 import json
 import os
-from datetime import datetime
+import shutil
+from datetime import datetime, timedelta
 import time
 import threading
 
@@ -10,36 +11,65 @@ TOKEN = '8672284943:AAEVBa7F9rKGQK76pkLr0vvHyDXKFCJDFos'
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = 'users.json'
+BACKUP_FILE = 'users.json.backup'
+LOTTO_FILE = 'lotto.json'
 
-# ========== ЖЕЛЕЗОБЕТОННЫЕ СОХРАНЕНИЯ ==========
-def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def save_data(data):
+# ========== АЛМАЗНЫЕ СОХРАНЕНИЯ ==========
+def safe_save(data, filename=DATA_FILE):
     try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        temp_file = filename + '.tmp'
+        with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        if os.path.exists(filename):
+            shutil.copy2(filename, filename + '.backup')
+        os.replace(temp_file, filename)
         return True
-    except:
+    except Exception as e:
+        print(f"Ошибка сохранения: {e}")
         return False
 
-data = load_data()
+def safe_load(filename=DATA_FILE, default={}):
+    try:
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except:
+        print(f"Файл {filename} поврежден, пробуем восстановить...")
+        backup = filename + '.backup'
+        if os.path.exists(backup):
+            try:
+                with open(backup, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    safe_save(data, filename)
+                    print("Восстановление из бэкапа успешно!")
+                    return data
+            except:
+                pass
+    return default
+
+data = safe_load()
+save_data = lambda d: safe_save(d)
+
+# ========== ДАННЫЕ ЛОТЕРЕИ ==========
+def load_lotto():
+    return safe_load(LOTTO_FILE, {'tickets': {}, 'last_draw': None, 'winner_today': False})
+
+def save_lotto(lotto):
+    safe_save(lotto, LOTTO_FILE)
+
+lotto_data = load_lotto()
 
 DEFAULT_USER = {
     'money': 500, 'level': 1, 'exp': 0, 'total_exp': 0,
     'last_work': None, 'username': None, 'total_earned': 0,
     'last_daily': None, 'daily_streak': 0, 'promos': [],
     'work_count': 0, 'slot_wins': 0, 'roulette_wins': 0,
-    'bet_wins': 0, 'coin_wins': 0, 'achievements': []
+    'bet_wins': 0, 'achievements': [], 'shop_buffs': {},
+    'daily_quests': None, 'last_quest_reset': None,
+    'lotto_ticket': None, 'lotto_wins': 0
 }
 
-# ========== ПРОФЕССИИ (12 УРОВНЕЙ) ==========
+# ========== ПРОФЕССИИ ==========
 LEVELS = {
     1: {"name": "Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
     2: {"name": "Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
@@ -55,6 +85,13 @@ LEVELS = {
     12: {"name": "Магнат", "salary_min": 300, "salary_max": 600, "exp_needed": 5000},
 }
 
+SHOP_ITEMS = {
+    'speed': {'name': 'Ускорение работы', 'price': 500, 'duration': 3600, 'effect': 'work_cooldown', 'value': 300},
+    'double_exp': {'name': 'Двойной опыт', 'price': 300, 'duration': 3600, 'effect': 'exp_multiplier', 'value': 2},
+    'protection': {'name': 'Защита от неудач', 'price': 200, 'duration': 3, 'effect': 'no_fail', 'value': 3},
+    'salary_boost': {'name': '+25% к зарплате', 'price': 400, 'duration': 86400, 'effect': 'salary_multiplier', 'value': 1.25},
+}
+
 ACHIEVEMENTS = {
     'work_10': {'name': "Трудоголик", 'reward': 100},
     'work_50': {'name': "Стахановец", 'reward': 500},
@@ -63,7 +100,8 @@ ACHIEVEMENTS = {
     'win_slot': {'name': "Счастливчик", 'reward': 50},
     'win_roulette': {'name': "Фортуна", 'reward': 50},
     'win_bet': {'name': "Лучший каппер", 'reward': 100},
-    'win_coin': {'name': "Орлянщик", 'reward': 50},
+    'quest_5': {'name': "Завсегдатай", 'reward': 200},
+    'quest_25': {'name': "Мастер заданий", 'reward': 1000},
     'money_1000': {'name': "Тысячник", 'reward': 200},
     'money_5000': {'name': "Богач", 'reward': 700},
     'money_10000': {'name': "Магнат", 'reward': 1500},
@@ -74,6 +112,8 @@ ACHIEVEMENTS = {
     'level_12': {'name': "Легенда", 'reward': 2000},
     'daily_streak': {'name': "Серийный", 'reward': 500},
     'daily_streak_30': {'name': "Железный", 'reward': 3000},
+    'lotto_win': {'name': "Везунчик", 'reward': 500},
+    'lotto_win_3': {'name': "Король лотереи", 'reward': 2000},
 }
 
 PROMOCODES = {
@@ -99,24 +139,30 @@ FAIL_MESSAGES = {
     "Магнат": ["Банкротство филиала! -{}💰", "Рейдерский захват! -{}💰"],
 }
 
-# ========== ЛОШАДИ ДЛЯ СТАВОК ==========
 HORSES = [
-    {"name": "🐎 МОЛНИЯ", "emoji": "🐎", "coefficient": 6.0, "chance": 10},
-    {"name": "🐎 ВЕТЕР", "emoji": "🐎", "coefficient": 4.0, "chance": 15},
-    {"name": "🐎 ГРОМ", "emoji": "🐎", "coefficient": 3.0, "chance": 20},
-    {"name": "🐎 МОЛОТ", "emoji": "🐎", "coefficient": 2.5, "chance": 25},
-    {"name": "🐎 СТРЕЛА", "emoji": "🐎", "coefficient": 2.0, "chance": 30},
-    {"name": "🐎 ТИХОНЯ", "emoji": "🐎", "coefficient": 10.0, "chance": 5},
+    {"name": "МОЛНИЯ", "emoji": "🐎", "coefficient": 6.0, "chance": 10},
+    {"name": "ВЕТЕР", "emoji": "🐎", "coefficient": 4.0, "chance": 15},
+    {"name": "ГРОМ", "emoji": "🐎", "coefficient": 3.0, "chance": 20},
+    {"name": "МОЛОТ", "emoji": "🐎", "coefficient": 2.5, "chance": 25},
+    {"name": "СТРЕЛА", "emoji": "🐎", "coefficient": 2.0, "chance": 30},
+    {"name": "ТИХОНЯ", "emoji": "🐎", "coefficient": 10.0, "chance": 5},
+]
+
+QUESTS = [
+    {"name": "Счастливчик", "desc": "Сыграть в слоты 3 раза", "type": "slot", "target": 3, "reward": 200},
+    {"name": "Фортуна", "desc": "Выиграть в рулетку 2 раза", "type": "roulette_win", "target": 2, "reward": 150},
+    {"name": "Каппер", "desc": "Сделать 5 ставок на скачки", "type": "bet", "target": 5, "reward": 300},
+    {"name": "Труженик", "desc": "Заработать 500 шекелей", "type": "earn", "target": 500, "reward": 200},
+    {"name": "Работяга", "desc": "Поработать 10 раз", "type": "work", "target": 10, "reward": 250},
+    {"name": "Победитель", "desc": "Выиграть в скачках 2 раза", "type": "bet_win", "target": 2, "reward": 350},
 ]
 
 # ========== ПЕРЕМЕННЫЕ ==========
 slot_waiting = {}
 roulette_waiting = {}
-coin_waiting = {}
 horse_race_active = False
 horse_race_bets = {}
 horse_race_events = []
-horse_race_start_time = None
 
 # ========== ФУНКЦИИ ==========
 def get_user(user_id, username=None):
@@ -135,6 +181,39 @@ def get_user(user_id, username=None):
                 save_data(data)
     return data[uid]
 
+def reset_daily_quests(user_id):
+    user = get_user(user_id)
+    today = datetime.now().date().isoformat()
+    
+    if user.get('last_quest_reset') != today:
+        selected = random.sample(QUESTS, 3)
+        user['daily_quests'] = []
+        for q in selected:
+            user['daily_quests'].append({
+                'name': q['name'], 'desc': q['desc'], 'type': q['type'],
+                'target': q['target'], 'reward': q['reward'], 'progress': 0, 'completed': False
+            })
+        user['last_quest_reset'] = today
+        save_data(data)
+
+def update_quest_progress(user_id, quest_type, amount=1):
+    user = get_user(user_id)
+    reset_daily_quests(user_id)
+    
+    msg = ""
+    for quest in user.get('daily_quests', []):
+        if not quest['completed'] and quest['type'] == quest_type:
+            quest['progress'] += amount
+            if quest['progress'] >= quest['target']:
+                quest['completed'] = True
+                user['money'] += quest['reward']
+                user['total_earned'] += quest['reward']
+                msg += f"\n\n✅ ЗАДАНИЕ ВЫПОЛНЕНО: {quest['name']}\n💰 +{quest['reward']} шекелей!"
+    
+    if msg:
+        save_data(data)
+    return msg
+
 def check_achievements(uid):
     user = get_user(uid)
     new = []
@@ -145,7 +224,11 @@ def check_achievements(uid):
     if user['slot_wins'] >= 1 and 'win_slot' not in user['achievements']: new.append('win_slot')
     if user['roulette_wins'] >= 1 and 'win_roulette' not in user['achievements']: new.append('win_roulette')
     if user['bet_wins'] >= 1 and 'win_bet' not in user['achievements']: new.append('win_bet')
-    if user['coin_wins'] >= 1 and 'win_coin' not in user['achievements']: new.append('win_coin')
+    
+    quest_count = sum(1 for q in user.get('daily_quests', []) if q.get('completed'))
+    if quest_count >= 5 and 'quest_5' not in user['achievements']: new.append('quest_5')
+    if quest_count >= 25 and 'quest_25' not in user['achievements']: new.append('quest_25')
+    
     if user['money'] >= 1000 and 'money_1000' not in user['achievements']: new.append('money_1000')
     if user['money'] >= 5000 and 'money_5000' not in user['achievements']: new.append('money_5000')
     if user['money'] >= 10000 and 'money_10000' not in user['achievements']: new.append('money_10000')
@@ -156,6 +239,9 @@ def check_achievements(uid):
     if user['level'] >= 12 and 'level_12' not in user['achievements']: new.append('level_12')
     if user.get('daily_streak', 0) >= 7 and 'daily_streak' not in user['achievements']: new.append('daily_streak')
     if user.get('daily_streak', 0) >= 30 and 'daily_streak_30' not in user['achievements']: new.append('daily_streak_30')
+    
+    if user.get('lotto_wins', 0) >= 1 and 'lotto_win' not in user['achievements']: new.append('lotto_win')
+    if user.get('lotto_wins', 0) >= 3 and 'lotto_win_3' not in user['achievements']: new.append('lotto_win_3')
     
     msg = ""
     for ach in new:
@@ -169,6 +255,10 @@ def check_achievements(uid):
 
 def add_exp(uid, amount):
     user = get_user(uid)
+    buff = user.get('shop_buffs', {}).get('double_exp')
+    if buff and buff.get('active_until', 0) > time.time():
+        amount = int(amount * 2)
+    
     user['exp'] += amount
     user['total_exp'] += amount
     leveled = False
@@ -189,6 +279,208 @@ def get_top():
     top.sort(key=lambda x: x[1], reverse=True)
     return top[:10]
 
+def has_buff(uid, buff_type):
+    user = get_user(uid)
+    buff = user.get('shop_buffs', {}).get(buff_type)
+    return buff and buff.get('active_until', 0) > time.time()
+
+def use_buff(uid, buff_type):
+    user = get_user(uid)
+    if buff_type == 'no_fail':
+        user['shop_buffs'][buff_type]['uses'] -= 1
+        if user['shop_buffs'][buff_type]['uses'] <= 0:
+            del user['shop_buffs'][buff_type]
+    save_data(data)
+
+def buy_buff(uid, item_key):
+    user = get_user(uid)
+    item = SHOP_ITEMS[item_key]
+    
+    if user['money'] < item['price']:
+        return False, f"❌ Не хватает {item['price']} шекелей!"
+    
+    user['money'] -= item['price']
+    
+    if 'shop_buffs' not in user:
+        user['shop_buffs'] = {}
+    
+    now = time.time()
+    if item_key == 'protection':
+        if item_key in user['shop_buffs']:
+            user['shop_buffs'][item_key]['uses'] += item['value']
+        else:
+            user['shop_buffs'][item_key] = {'uses': item['value'], 'active_until': now + 86400}
+    else:
+        user['shop_buffs'][item_key] = {'active_until': now + item['duration']}
+    
+    save_data(data)
+    return True, f"✅ {item['name']} куплен!"
+
+# ========== ЛОТЕРЕЯ ==========
+def generate_ticket_number():
+    return random.randint(8, 100)
+
+def check_lotto_status():
+    now = datetime.now()
+    current_time = now.time()
+    
+    # Прием билетов с 18:00 до 19:00
+    ticket_start = datetime.strptime("18:00", "%H:%M").time()
+    ticket_end = datetime.strptime("19:00", "%H:%M").time()
+    
+    is_ticket_time = ticket_start <= current_time < ticket_end
+    can_buy = is_ticket_time and not lotto_data.get('winner_today', False)
+    
+    return can_buy, is_ticket_time, lotto_data.get('winner_today', False)
+
+def reset_lotto_if_needed():
+    today = datetime.now().date().isoformat()
+    if lotto_data.get('last_draw') != today:
+        lotto_data['tickets'] = {}
+        lotto_data['last_draw'] = today
+        lotto_data['winner_today'] = False
+        save_lotto(lotto_data)
+
+def draw_lotto():
+    global lotto_data
+    now = datetime.now()
+    current_time = now.time()
+    draw_time = datetime.strptime("19:00", "%H:%M").time()
+    
+    # Проверяем время розыгрыша (19:00)
+    if current_time >= draw_time and not lotto_data.get('winner_today', False):
+        tickets = lotto_data.get('tickets', {})
+        
+        if not tickets:
+            lotto_data['winner_today'] = True
+            save_lotto(lotto_data)
+            return
+        
+        # Выбираем 3 случайных билета
+        all_tickets = list(tickets.keys())
+        random.shuffle(all_tickets)
+        winners = all_tickets[:3] if len(all_tickets) >= 3 else all_tickets
+        
+        # Подсчитываем результаты
+        results = f"🎰 РОЗЫГРЫШ ЛОТЕРЕИ 🎰\n\n"
+        results += f"📅 Дата: {now.strftime('%d.%m.%Y')}\n"
+        results += f"🎫 Всего билетов: {len(all_tickets)}\n\n"
+        
+        # Рассылаем выигрыши
+        for i, ticket_num in enumerate(winners, 1):
+            user_id = tickets[ticket_num]
+            user = get_user(user_id)
+            win_amount = random.randint(1111, 2002)
+            user['money'] += win_amount
+            user['total_earned'] += win_amount
+            user['lotto_wins'] = user.get('lotto_wins', 0) + 1
+            save_data(data)
+            
+            results += f"🥇 {i}-е МЕСТО: Билет №{ticket_num}\n"
+            results += f"👤 Победитель: @{user['username']}\n"
+            results += f"💰 Выигрыш: {win_amount} шекелей!\n\n"
+            
+            # Отправляем личное сообщение победителю
+            try:
+                bot.send_message(int(user_id), 
+                    f"🎉 ПОЗДРАВЛЯЮ! 🎉\n\n"
+                    f"Твой билет №{ticket_num} выиграл в лотерее!\n"
+                    f"💰 Выигрыш: {win_amount} шекелей!\n"
+                    f"💵 Новый баланс: {user['money']}")
+            except:
+                pass
+            
+            check_achievements(user_id)
+        
+        if len(winners) < 3:
+            results += f"❌ Недостаточно участников для 3 победителей\n"
+        
+        results += f"\n🎲 Следующий розыгрыш завтра в 19:00 МСК!\n"
+        results += f"🎫 Билеты можно купить с 18:00 до 19:00 МСК"
+        
+        # Рассылаем результаты всем, у кого были билеты
+        sent_users = set()
+        for ticket_num, user_id in tickets.items():
+            if user_id not in sent_users:
+                try:
+                    bot.send_message(int(user_id), results)
+                    sent_users.add(user_id)
+                except:
+                    pass
+        
+        lotto_data['winner_today'] = True
+        save_lotto(lotto_data)
+        
+        # Очищаем билеты
+        for uid in data:
+            if data[uid].get('lotto_ticket'):
+                data[uid]['lotto_ticket'] = None
+        save_data(data)
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['лотерея', 'билет', 'купить билет'])
+def lotto_cmd(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    reset_lotto_if_needed()
+    can_buy, is_ticket_time, winner_today = check_lotto_status()
+    
+    if winner_today:
+        bot.send_message(message.chat.id, 
+            "🎰 ЛОТЕРЕЯ 🎰\n\n"
+            "❌ Розыгрыш сегодня уже прошел!\n"
+            "🎫 Следующий розыгрыш завтра в 19:00 МСК\n"
+            "⏰ Билеты можно купить с 18:00 до 19:00 МСК")
+        return
+    
+    if not is_ticket_time:
+        bot.send_message(message.chat.id, 
+            "🎰 ЛОТЕРЕЯ 🎰\n\n"
+            "❌ Сейчас нельзя купить билет!\n"
+            "⏰ Время приема билетов: с 18:00 до 19:00 МСК\n"
+            "🎲 Розыгрыш в 19:00 МСК")
+        return
+    
+    if user.get('lotto_ticket'):
+        bot.send_message(message.chat.id, 
+            f"🎰 ЛОТЕРЕЯ 🎰\n\n"
+            f"❌ У тебя уже есть билет №{user['lotto_ticket']}!\n"
+            f"🎲 Жди розыгрыша в 19:00 МСК!")
+        return
+    
+    ticket = generate_ticket_number()
+    while str(ticket) in lotto_data.get('tickets', {}):
+        ticket = generate_ticket_number()
+    
+    user['lotto_ticket'] = ticket
+    lotto_data['tickets'][str(ticket)] = uid
+    save_lotto(lotto_data)
+    save_data(data)
+    
+    bot.send_message(message.chat.id, 
+        f"🎰 ЛОТЕРЕЯ 🎰\n\n"
+        f"✅ Твой билет №{ticket}!\n"
+        f"🎲 Розыгрыш сегодня в 19:00 МСК\n"
+        f"🏆 3 победителя получат призы от 1111 до 2002 шекелей!\n\n"
+        f"💫 Удачи!")
+
+# ========== ФОН ТАЙМЕР ДЛЯ ЛОТЕРЕИ ==========
+def lotto_timer():
+    while True:
+        try:
+            now = datetime.now()
+            # Проверяем розыгрыш каждую минуту в 19:00
+            if now.hour == 19 and now.minute == 0:
+                reset_lotto_if_needed()
+                draw_lotto()
+            time.sleep(60)
+        except:
+            time.sleep(60)
+
+# Запускаем поток лотереи
+lotto_thread = threading.Thread(target=lotto_timer, daemon=True)
+lotto_thread.start()
+
 # ========== КОМАНДЫ ==========
 
 @bot.message_handler(commands=['start'])
@@ -196,6 +488,7 @@ def start_cmd(message):
     uid = message.from_user.id
     user = get_user(uid, message.from_user.username)
     level_info = get_level_info(user['level'])
+    reset_daily_quests(uid)
     bot.send_message(message.chat.id,
         f"🎮 ХИТРЫЙ ЕВРЕЙ 🎮\n\n"
         f"👋 Привет, @{message.from_user.username}!\n"
@@ -209,16 +502,21 @@ def show_commands(message):
     msg += f"--- ИГРЫ ---\n"
     msg += f"• рулетка - игра в рулетку\n"
     msg += f"• слоты - слоты 3x3\n"
-    msg += f"• орел / решка - игра с монеткой\n"
-    msg += f"• скачки - сделать ставку на скачки\n\n"
+    msg += f"• скачки - сделать ставку на скачки\n"
+    msg += f"• лотерея / билет - купить билет (с 18:00 до 19:00 МСК)\n\n"
     msg += f"--- ЗАРАБОТОК ---\n"
     msg += f"• работа - работа (КД 10 мин)\n"
     msg += f"• бонус - ежедневный (КД 12 ч)\n\n"
+    msg += f"--- МАГАЗИН ---\n"
+    msg += f"• магазин - посмотреть товары\n"
+    msg += f"• купить [товар] - купить улучшение\n\n"
+    msg += f"--- ЗАДАНИЯ ---\n"
+    msg += f"• задания - посмотреть ежедневные задания\n\n"
     msg += f"--- ИНФО ---\n"
     msg += f"• баланс - проверить деньги\n"
     msg += f"• профиль - статистика\n"
     msg += f"• топ - топ богатых\n"
-    msg += f"• достижения - список ачивок\n\n"
+    msg += f"• достижения - список ачивок"
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['баланс', 'деньги'])
@@ -233,7 +531,8 @@ def balance_cmd(message):
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['профиль', 'стата'])
 def profile_cmd(message):
-    user = get_user(message.from_user.id, message.from_user.username)
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
     level_info = get_level_info(user['level'])
     
     next_lvl = user['level'] + 1
@@ -246,6 +545,18 @@ def profile_cmd(message):
     else:
         left, prog, bar = 0, 100, '▓▓▓▓▓▓▓▓▓▓'
     
+    buffs = ""
+    now = time.time()
+    for key, buff in user.get('shop_buffs', {}).items():
+        if key == 'speed' and buff.get('active_until', 0) > now:
+            buffs += f"\n⚡ Ускорение работы (ещё {int((buff['active_until']-now)/60)} мин)"
+        elif key == 'double_exp' and buff.get('active_until', 0) > now:
+            buffs += f"\n⭐ Двойной опыт (ещё {int((buff['active_until']-now)/60)} мин)"
+        elif key == 'salary_boost' and buff.get('active_until', 0) > now:
+            buffs += f"\n📈 +25% зарплаты (ещё {int((buff['active_until']-now)/3600)} ч)"
+        elif key == 'protection' and buff.get('uses', 0) > 0:
+            buffs += f"\n🛡️ Защита от неудач (осталось {buff['uses']} раз)"
+    
     msg = f"📊 ПРОФИЛЬ 📊\n\n"
     msg += f"👤 @{user.get('username') or 'Нет имени'}\n"
     msg += f"🏆 Уровень {user['level']} - {level_info['name']}\n"
@@ -254,11 +565,15 @@ def profile_cmd(message):
     msg += f"📈 Всего заработал: {user['total_earned']}\n"
     msg += f"🎁 Серия бонусов: {user.get('daily_streak', 0)}\n"
     msg += f"📦 Работ выполнено: {user.get('work_count', 0)}\n"
-    msg += f"🏆 Достижений: {len(user.get('achievements', []))}"
+    msg += f"🏆 Достижений: {len(user.get('achievements', []))}\n"
+    msg += f"🎫 Билет лотереи: {user.get('lotto_ticket', 'Нет')}"
+    if buffs:
+        msg += f"\n✨ АКТИВНЫЕ БАФФЫ:{buffs}"
+    msg += f"\n\n🎲 *ЛОТЕРЕЯ*\n⏰ Розыгрыш каждый день в 19:00 МСК!\n🎫 Билеты можно купить с 18:00 до 19:00 МСК"
     
     if left > 0:
         msg += f"\n\n📊 До {next_lvl} уровня:\n{bar} {prog}%\nОсталось: {left} опыта"
-    bot.send_message(message.chat.id, msg)
+    bot.send_message(message.chat.id, msg, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
 def top_cmd(message):
@@ -284,17 +599,28 @@ def work_cmd(message):
     user = get_user(uid, message.from_user.username)
     level_info = get_level_info(user['level'])
     
+    cooldown = 300 if has_buff(uid, 'speed') else 600
+    
     if user['last_work']:
         last = datetime.fromisoformat(user['last_work'])
         diff = (datetime.now() - last).total_seconds()
-        if diff < 600:
-            rem = int(600 - diff)
+        if diff < cooldown:
+            rem = int(cooldown - diff)
             m, s = rem // 60, rem % 60
             bot.send_message(message.chat.id, f"⏰ Отдыхай {m} мин {s} сек")
             return
     
     base = random.randint(level_info['salary_min'], level_info['salary_max'])
+    
+    if has_buff(uid, 'salary_boost'):
+        base = int(base * 1.25)
+    
     fail = random.randint(1, 100) <= 5
+    
+    if has_buff(uid, 'no_fail') and fail:
+        fail = False
+        use_buff(uid, 'no_fail')
+        bot.send_message(message.chat.id, "🛡️ Защита от неудач сработала!")
     
     if fail:
         penalty = random.randint(int(base * 0.3), int(base * 0.7))
@@ -321,6 +647,11 @@ def work_cmd(message):
     
     user['last_work'] = datetime.now().isoformat()
     save_data(data)
+    
+    quest_msg = update_quest_progress(uid, 'work', 1)
+    quest_msg += update_quest_progress(uid, 'earn', base)
+    if quest_msg:
+        msg += quest_msg
     
     ach = check_achievements(uid)
     if ach:
@@ -400,6 +731,47 @@ def achievements_cmd(message):
     msg += f"\n📊 Получено: {len(completed)}/{len(ACHIEVEMENTS)}"
     bot.send_message(message.chat.id, msg)
 
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['магазин', 'shop'])
+def shop_cmd(message):
+    msg = f"🛒 МАГАЗИН 🛒\n\n"
+    for key, item in SHOP_ITEMS.items():
+        msg += f"• {item['name']} - {item['price']}💰\n"
+    msg += f"\n💡 Напиши 'купить [название]'"
+    bot.send_message(message.chat.id, msg)
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('купить'))
+def buy_cmd(message):
+    uid = message.from_user.id
+    item_name = message.text.lower().replace('купить', '').strip()
+    
+    item_key = None
+    for key, item in SHOP_ITEMS.items():
+        if item['name'].lower() in item_name:
+            item_key = key
+            break
+    
+    if not item_key:
+        bot.send_message(message.chat.id, f"❌ Товар '{item_name}' не найден!\nНапиши 'магазин' для списка")
+        return
+    
+    success, msg = buy_buff(uid, item_key)
+    bot.send_message(message.chat.id, msg)
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['задания', 'ежедневные', 'quest', 'квесты'])
+def quests_cmd(message):
+    uid = message.from_user.id
+    reset_daily_quests(uid)
+    user = get_user(uid)
+    
+    msg = f"📋 ЕЖЕДНЕВНЫЕ ЗАДАНИЯ 📋\n\n"
+    for quest in user.get('daily_quests', []):
+        if quest['completed']:
+            msg += f"✅ {quest['name']} - {quest['desc']} (ВЫПОЛНЕНО)\n"
+        else:
+            msg += f"❌ {quest['name']} - {quest['desc']} ({quest['progress']}/{quest['target']}) +{quest['reward']}💰\n"
+    
+    bot.send_message(message.chat.id, msg)
+
 # ========== СЕКРЕТНАЯ АЧИВКА ==========
 @bot.message_handler(func=lambda m: m.text and all(w in m.text.lower() for w in ['шепель', 'лох', 'нищий', 'бомж']))
 def secret_achievement(message):
@@ -436,7 +808,7 @@ def slots_get_bet(message):
     try:
         bet = int(message.text.strip())
         if bet < 10:
-            bot.send_message(message.chat.id, "❌ Минимум 10 шекелей!")
+            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
             return
     except:
         bot.send_message(message.chat.id, "❌ Введи число!")
@@ -475,6 +847,7 @@ def slots_get_bet(message):
         user['slot_wins'] += 1
         add_exp(uid, win // 4)
         save_data(data)
+        update_quest_progress(uid, 'slot', 1)
     
     msg_text = f"🎰 РЕЗУЛЬТАТ 🎰\n\n"
     msg_text += f"┌───┬───┬───┐\n│ {result[0]} │ {result[1]} │ {result[2]} │\n└───┴───┴───┘\n\n"
@@ -556,6 +929,7 @@ def roulette_amount(message):
         user['total_earned'] += win
         user['roulette_wins'] += 1
         add_exp(uid, win // 4)
+        update_quest_progress(uid, 'roulette_win', 1)
         msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💰 ВЫИГРЫШ: +{win}\n💵 Баланс: {user['money']}"
     else:
         msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💔 ПРОИГРЫШ\n💵 Баланс: {user['money']}"
@@ -566,80 +940,6 @@ def roulette_amount(message):
         msg += ach
     bot.send_message(message.chat.id, msg)
     del roulette_waiting[uid]
-
-# ========== ОРЁЛ/РЕШКА ==========
-
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['орел', 'решка', 'орел/решка', 'монетка'])
-def coin_game(message):
-    uid = message.from_user.id
-    coin_waiting[uid] = 'waiting_bet'
-    bot.send_message(message.chat.id, "🪙 ОРЁЛ/РЕШКА 🪙\n\n💰 Введи сумму ставки (мин 10):")
-
-@bot.message_handler(func=lambda m: m.from_user.id in coin_waiting and coin_waiting[m.from_user.id] == 'waiting_bet')
-def coin_get_bet(message):
-    uid = message.from_user.id
-    try:
-        bet = int(message.text.strip())
-        if bet < 10:
-            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
-            return
-    except:
-        bot.send_message(message.chat.id, "❌ Введи число!")
-        del coin_waiting[uid]
-        return
-    
-    user = get_user(uid, message.from_user.username)
-    if user['money'] < bet:
-        bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!")
-        del coin_waiting[uid]
-        return
-    
-    coin_waiting[uid] = bet
-
-@bot.message_handler(func=lambda m: m.from_user.id in coin_waiting and isinstance(coin_waiting[m.from_user.id], int))
-def coin_choose(message):
-    uid = message.from_user.id
-    bet = coin_waiting[uid]
-    choice = message.text.lower()
-    
-    if choice not in ['орел', 'решка']:
-        bot.send_message(message.chat.id, "❌ Выбери 'орел' или 'решка'!")
-        return
-    
-    # Подбрасываем монетку
-    result = random.choice(['орел', 'решка'])
-    win = 0
-    
-    if choice == result:
-        win = bet * 2
-        user = get_user(uid, message.from_user.username)
-        user['money'] += win
-        user['total_earned'] += win
-        user['coin_wins'] += 1
-        add_exp(uid, win // 4)
-        save_data(data)
-        msg = f"🪙 ОРЁЛ/РЕШКА 🪙\n\n"
-        msg += f"🎲 Ты выбрал: {choice.upper()}\n"
-        msg += f"🎲 Выпало: {result.upper()}\n"
-        msg += f"✨ ПОБЕДА! +{win} шекелей ✨\n"
-        msg += f"💵 Баланс: {user['money']}"
-        
-        ach = check_achievements(uid)
-        if ach:
-            msg += ach
-    else:
-        user = get_user(uid, message.from_user.username)
-        user['money'] -= bet
-        user['total_earned'] -= bet
-        save_data(data)
-        msg = f"🪙 ОРЁЛ/РЕШКА 🪙\n\n"
-        msg += f"🎲 Ты выбрал: {choice.upper()}\n"
-        msg += f"🎲 Выпало: {result.upper()}\n"
-        msg += f"💔 ПРОИГРЫШ! -{bet} шекелей 💔\n"
-        msg += f"💵 Баланс: {user['money']}"
-    
-    bot.send_message(message.chat.id, msg)
-    del coin_waiting[uid]
 
 # ========== СКАЧКИ ==========
 
@@ -682,6 +982,8 @@ def start_horse_race(chat_id):
                 user['bet_wins'] += 1
                 add_exp(uid, win_amount // 4)
                 winners_list.append(f"✅ @{user['username']} +{win_amount}💰")
+                update_quest_progress(uid, 'bet_win', 1)
+                update_quest_progress(uid, 'bet', 1)
     
     if winners_list:
         results += "💰 ВЫИГРЫШИ:\n" + "\n".join(winners_list)
@@ -709,10 +1011,10 @@ def horse_race_event_loop(chat_id):
             if random.randint(1, 100) <= 40:
                 horse = random.choice(HORSES)
                 events = [
-                    f"💥 {horse['name']} споткнулся!",
-                    f"🏇 {horse['name']} ускорился!",
-                    f"🐎 {horse['name']} обошел соперника!",
-                    f"⚡ {horse['name']} набрал скорость!",
+                    f"💥 {horse['name']} споткнулась!",
+                    f"🏇 {horse['name']} ускорилась!",
+                    f"🐎 {horse['name']} обошла соперника!",
+                    f"⚡ {horse['name']} набрала скорость!",
                     f"💪 {horse['name']} делает рывок!",
                     f"🍀 {horse['name']} повезло на финише!",
                 ]
@@ -762,11 +1064,7 @@ def horse_race_choose(call):
     uid = call.from_user.id
     horse_name = call.data.split('_')[1]
     
-    horse = None
-    for h in HORSES:
-        if h['name'] == horse_name:
-            horse = h
-            break
+    horse = next((h for h in HORSES if h['name'] == horse_name), None)
     
     if not horse:
         bot.answer_callback_query(call.id, "❌ Лошадь не найдена!", show_alert=True)
@@ -812,6 +1110,8 @@ def horse_race_get_bet(message):
     
     horse = next((h for h in HORSES if h['name'] == horse_name), None)
     
+    update_quest_progress(uid, 'bet', 1)
+    
     bot.send_message(message.chat.id, 
         f"✅ СТАВКА ПРИНЯТА!\n\n"
         f"🐎 {horse['emoji']} {horse_name}\n"
@@ -824,12 +1124,16 @@ def horse_race_get_bet(message):
 # ========== ЗАПУСК ==========
 print("=" * 50)
 print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
+print("АЛМАЗНЫЕ СОХРАНЕНИЯ - активны!")
+print("МАГАЗИН - работает!")
+print("ЕЖЕДНЕВНЫЕ ЗАДАНИЯ - работают!")
+print("ЛОТЕРЕЯ - каждый день в 18:00-19:00 МСК!")
 print("12 УРОВНЕЙ ПРОФЕССИЙ!")
-print("ОРЁЛ/РЕШКА - работает!")
-print("СКАЧКИ - работают!")
-print("Слоты - работают")
-print("Рулетка - работает")
-print("Сохранения - железобетонные")
+print("СЛОТЫ - работают")
+print("РУЛЕТКА - работает")
+print("СКАЧКИ - работают")
 print("=" * 50)
 
 bot.infinity_polling()
+
+
