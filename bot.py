@@ -626,5 +626,69 @@ def roulette_bet(call):
 @bot.message_handler(func=lambda m: m.from_user.id in roulette_waiting)
 def roulette_amount(message):
     uid = message.from_user.id
-    bet_type = rou
+    bet_type = roulette_waiting[uid]
+    try:
+        bet = int(message.text.strip())
+        if bet < 10:
+            bot.send_message(message.chat.id, "❌ Минимум 10!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        del roulette_waiting[uid]
+        return
+    
+    user = get_user(uid, message.from_user.username)
+    if user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ Не хватает {bet}!")
+        del roulette_waiting[uid]
+        return
+    
+    user['money'] -= bet
+    save_data(data)
+    
+    num = random.randint(0, 36)
+    if num == 0:
+        color, emoji = 'green', '🟢'
+    elif num in [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]:
+        color, emoji = 'red', '🔴'
+    else:
+        color, emoji = 'black', '⚫'
+    
+    win = 0
+    if bet_type == 'red' and color == 'red': win = bet * 2
+    elif bet_type == 'black' and color == 'black': win = bet * 2
+    elif bet_type == 'green' and num == 0: win = bet * 35
+    elif bet_type == 'even' and num > 0 and num % 2 == 0: win = bet * 2
+    elif bet_type == 'odd' and num > 0 and num % 2 == 1: win = bet * 2
+    
+    names = {'red':'КРАСНОЕ', 'black':'ЧЕРНОЕ', 'green':'ЗЕЛЕНЫЙ', 'even':'ЧЕТ', 'odd':'НЕЧЕТ'}
+    
+    if win > 0:
+        user['money'] += win
+        user['total_earned'] += win
+        user['roulette_wins'] += 1
+        add_exp(uid, win // 4)
+        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💰 ВЫИГРЫШ: +{win}\n💵 Баланс: {user['money']}"
+    else:
+        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💔 ПРОИГРЫШ\n💵 Баланс: {user['money']}"
+    
+    save_data(data)
+    ach = check_achievements(uid)
+    if ach:
+        msg += ach
+    bot.send_message(message.chat.id, msg)
+    del roulette_waiting[uid]
+
+# ========== ЗАПУСК ==========
+
+print("=" * 50)
+print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
+print("Слоты - работают")
+print("Рулетка - работает")
+print("Профиль - работает")
+print("Топ - работает")
+print("Сохранения - железобетонные")
+print("=" * 50)
+
+bot.infinity_polling()
    
