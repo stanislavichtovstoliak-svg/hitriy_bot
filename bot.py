@@ -14,6 +14,7 @@ roulette_waiting = {}
 slot_waiting = {}
 bj_games = {}
 fortune_cooldown = {}
+daily_transfer = {}
 
 LEVELS = {
     1: {"name": "Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
@@ -27,18 +28,20 @@ LEVELS = {
 }
 
 ACHIEVEMENTS = {
-    'work_10': {'name': 'Трудоголик', 'desc': 'Выполнить 10 работ', 'target': 10, 'reward': 100},
-    'work_50': {'name': 'Стахановец', 'desc': 'Выполнить 50 работ', 'target': 50, 'reward': 500},
-    'work_100': {'name': 'Машина', 'desc': 'Выполнить 100 работ', 'target': 100, 'reward': 1000},
-    'win_slot': {'name': 'Счастливчик', 'desc': 'Выиграть в слотах', 'target': 1, 'reward': 50},
-    'win_bj': {'name': 'Картежник', 'desc': 'Выиграть в блекджек', 'target': 1, 'reward': 50},
-    'win_roulette': {'name': 'Фортуна', 'desc': 'Выиграть в рулетку', 'target': 1, 'reward': 50},
-    'money_1000': {'name': 'Тысячник', 'desc': 'Накопить 1000 шекелей', 'target': 1000, 'reward': 200},
-    'money_5000': {'name': 'Богач', 'desc': 'Накопить 5000 шекелей', 'target': 5000, 'reward': 700},
-    'money_10000': {'name': 'Магнат', 'desc': 'Накопить 10000 шекелей', 'target': 10000, 'reward': 1500},
-    'level_5': {'name': 'Профи', 'desc': 'Достичь 5 уровня', 'target': 5, 'reward': 300},
-    'level_8': {'name': 'Легенда', 'desc': 'Достичь 8 уровня', 'target': 8, 'reward': 1000},
-    'daily_streak': {'name': 'Серийный', 'desc': 'Получить бонус 7 дней подряд', 'target': 7, 'reward': 500},
+    'work_10': {'name': "Трудоголик", 'desc': "Выполнить 10 работ", 'target': 10, 'reward': 100},
+    'work_50': {'name': "Стахановец", 'desc': "Выполнить 50 работ", 'target': 50, 'reward': 500},
+    'work_100': {'name': "Машина", 'desc': "Выполнить 100 работ", 'target': 100, 'reward': 1000},
+    'win_slot': {'name': "Счастливчик", 'desc': "Выиграть в слотах", 'target': 1, 'reward': 50},
+    'win_bj': {'name': "Картежник", 'desc': "Выиграть в блекджек", 'target': 1, 'reward': 50},
+    'win_roulette': {'name': "Фортуна", 'desc': "Выиграть в рулетку", 'target': 1, 'reward': 50},
+    'money_1000': {'name': "Тысячник", 'desc': "Накопить 1000 шекелей", 'target': 1000, 'reward': 200},
+    'money_5000': {'name': "Богач", 'desc': "Накопить 5000 шекелей", 'target': 5000, 'reward': 700},
+    'money_10000': {'name': "Магнат", 'desc': "Накопить 10000 шекелей", 'target': 10000, 'reward': 1500},
+    'level_5': {'name': "Профи", 'desc': "Достичь 5 уровня", 'target': 5, 'reward': 300},
+    'level_8': {'name': "Легенда", 'desc': "Достичь 8 уровня", 'target': 8, 'reward': 1000},
+    'daily_streak': {'name': "Серийный", 'desc': "Получить бонус 7 дней подряд", 'target': 7, 'reward': 500},
+    'secret_insult': {'name': "Шепельфест", 'desc': "Найти секретное слово!", 'target': 1, 'reward': 200},
+    'married': {'name': "Семьянин", 'desc': "Вступить в брак", 'target': 1, 'reward': 500},
 }
 
 FORTUNE_REWARDS = [
@@ -46,7 +49,7 @@ FORTUNE_REWARDS = [
     {"name": "100 шекелей", "money": 100, "exp": 0, "prob": 20},
     {"name": "200 шекелей", "money": 200, "exp": 0, "prob": 15},
     {"name": "500 шекелей", "money": 500, "exp": 0, "prob": 8},
-    {"name": "1000 шекелей ДЖЕКПОТ!", "money": 1000, "exp": 0, "prob": 2},
+    {"name": "1000 шекелей (ДЖЕКПОТ!)", "money": 1000, "exp": 0, "prob": 2},
     {"name": "50 опыта", "money": 0, "exp": 50, "prob": 15},
     {"name": "100 опыта", "money": 0, "exp": 100, "prob": 10},
     {"name": "200 опыта", "money": 0, "exp": 200, "prob": 5},
@@ -90,12 +93,19 @@ def get_user(user_id, username=None):
             'last_work': None, 'username': username, 'total_earned': 0,
             'last_daily': None, 'daily_streak': 0, 'promos': [],
             'work_count': 0, 'slot_wins': 0, 'bj_wins': 0, 'roulette_wins': 0,
-            'achievements': []
+            'achievements': [], 'married_to': None,
+            'today_transfer': 0
         }
         save_data()
     else:
         if username and data[uid].get('username') != username:
             data[uid]['username'] = username
+            save_data()
+        if 'married_to' not in data[uid]:
+            data[uid]['married_to'] = None
+            save_data()
+        if 'today_transfer' not in data[uid]:
+            data[uid]['today_transfer'] = 0
             save_data()
     return data[uid]
 
@@ -131,6 +141,9 @@ def check_achievements(uid):
     
     if user.get('daily_streak', 0) >= 7 and 'daily_streak' not in user['achievements']:
         new_achievements.append('daily_streak')
+    
+    if user.get('married_to') and 'married' not in user['achievements']:
+        new_achievements.append('married')
     
     msg = ""
     for ach_id in new_achievements:
@@ -172,6 +185,238 @@ def get_bot_stats():
     top_level = max((u.get('level', 1) for u in data.values()), default=1)
     return total_users, total_money, total_earned, top_level
 
+# ========== ПЕРЕВОД ДЕНЕГ ==========
+
+def can_transfer(uid, amount):
+    user = get_user(uid)
+    today = datetime.now().strftime('%Y%m%d')
+    key = f"{uid}_{today}"
+    
+    if key not in daily_transfer:
+        daily_transfer[key] = 0
+    
+    if daily_transfer[key] + amount > 10000:
+        return False, 10000 - daily_transfer[key]
+    return True, 0
+
+def add_transfer(uid, amount):
+    today = datetime.now().strftime('%Y%m%d')
+    key = f"{uid}_{today}"
+    daily_transfer[key] = daily_transfer.get(key, 0) + amount
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('дать') and m.reply_to_message)
+def transfer_money(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    if not message.reply_to_message:
+        bot.send_message(message.chat.id, "❌ Ответь на сообщение пользователя, которому хочешь дать деньги!")
+        return
+    
+    target_uid = message.reply_to_message.from_user.id
+    target_user = get_user(target_uid, message.reply_to_message.from_user.username)
+    
+    if str(target_uid) == str(uid):
+        bot.send_message(message.chat.id, "❌ Нельзя дать деньги самому себе!")
+        return
+    
+    parts = message.text.split()
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "❌ Укажи сумму! Пример: дать 500")
+        return
+    
+    try:
+        amount = int(parts[1])
+        if amount <= 0:
+            bot.send_message(message.chat.id, "❌ Сумма должна быть положительной!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        return
+    
+    if user['money'] < amount:
+        bot.send_message(message.chat.id, f"❌ У тебя только {user['money']} шекелей!")
+        return
+    
+    can, remaining = can_transfer(uid, amount)
+    if not can:
+        bot.send_message(message.chat.id, f"❌ Лимит на переводы сегодня {10000} шекелей! Можешь перевести еще {remaining}.")
+        return
+    
+    user['money'] -= amount
+    target_user['money'] += amount
+    add_transfer(uid, amount)
+    save_data()
+    
+    bot.send_message(message.chat.id, 
+        f"💸 ПЕРЕВОД 💸\n\n"
+        f"👤 @{message.from_user.username} перевел @{message.reply_to_message.from_user.username}\n"
+        f"💰 Сумма: {amount} шекелей\n"
+        f"💵 Остаток у отправителя: {user['money']}\n"
+        f"💵 Баланс получателя: {target_user['money']}")
+
+# ========== БРАКИ ==========
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('свадьба'))
+def marry_cmd(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    if user.get('married_to'):
+        bot.send_message(message.chat.id, "❌ Ты уже в браке! Сначала разведись.")
+        return
+    
+    parts = message.text.split()
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "❌ Используй: свадьба [ID пользователя] или свадьба @username")
+        return
+    
+    target_input = parts[1]
+    target_uid = None
+    
+    if target_input.startswith('@'):
+        target_name = target_input[1:]
+        for uid_check, u in data.items():
+            if u.get('username') == target_name:
+                target_uid = uid_check
+                break
+    else:
+        target_uid = target_input
+    
+    try:
+        target_uid = str(int(target_uid))
+    except:
+        bot.send_message(message.chat.id, "❌ Укажи корректный ID или юзернейм!")
+        return
+    
+    if target_uid == str(uid):
+        bot.send_message(message.chat.id, "❌ Нельзя жениться на себе!")
+        return
+    
+    target_user = get_user(target_uid)
+    
+    if target_user.get('married_to'):
+        bot.send_message(message.chat.id, f"❌ @{target_user['username']} уже в браке!")
+        return
+    
+    bot.send_message(message.chat.id, 
+        f"💍 ПРЕДЛОЖЕНИЕ 💍\n\n"
+        f"@{message.from_user.username} предлагает брак @{target_user['username']}!\n"
+        f"💒 Стоимость свадьбы: 1000 шекелей\n\n"
+        f"@{target_user['username']}, напиши 'согласен' или 'отказ' в течение 60 секунд!")
+    
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("💍 СОГЛАСЕН", callback_data=f'marry_accept_{uid}_{target_uid}'),
+        telebot.types.InlineKeyboardButton("❌ ОТКАЗ", callback_data=f'marry_decline_{uid}_{target_uid}')
+    )
+    
+    bot.send_message(target_uid, 
+        f"💍 ТЕБЕ СДЕЛАЛИ ПРЕДЛОЖЕНИЕ! 💍\n\n"
+        f"@{message.from_user.username} хочет на тебе жениться!\n"
+        f"💒 Стоимость: 1000 шекелей (поровну)",
+        reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('marry_'))
+def marry_callback(call):
+    action, from_uid, to_uid = call.data.split('_')[1], call.data.split('_')[2], call.data.split('_')[3]
+    uid = call.from_user.id
+    
+    if str(uid) != to_uid:
+        bot.answer_callback_query(call.id, "❌ Это не тебе предложили!", show_alert=True)
+        return
+    
+    from_user = get_user(from_uid)
+    to_user = get_user(to_uid)
+    
+    if action == 'accept':
+        total_cost = 1000
+        each_cost = 500
+        
+        if from_user['money'] < each_cost:
+            bot.answer_callback_query(call.id, f"❌ У @{from_user['username']} не хватает {each_cost} шекелей!", show_alert=True)
+            return
+        
+        if to_user['money'] < each_cost:
+            bot.answer_callback_query(call.id, f"❌ У тебя не хватает {each_cost} шекелей!", show_alert=True)
+            return
+        
+        from_user['money'] -= each_cost
+        to_user['money'] -= each_cost
+        from_user['married_to'] = to_uid
+        to_user['married_to'] = from_uid
+        save_data()
+        
+        # Проверка ачивки
+        ach_msg = check_achievements(from_uid)
+        ach_msg2 = check_achievements(to_uid)
+        
+        msg = f"💒 ПОЗДРАВЛЯЕМ! 💒\n\n"
+        msg += f"🎉 @{from_user['username']} и @{to_user['username']} теперь муж и жена!\n"
+        msg += f"💰 С каждого списано по 500 шекелей"
+        
+        bot.send_message(call.message.chat.id, msg)
+        
+        if ach_msg:
+            bot.send_message(from_uid, ach_msg)
+        if ach_msg2:
+            bot.send_message(to_uid, ach_msg2)
+            
+    else:
+        bot.edit_message_text(f"❌ @{to_user['username']} отказался от брака!", 
+                              call.message.chat.id, call.message.message_id)
+    
+    bot.answer_callback_query(call.id)
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() == 'развод')
+def divorce_cmd(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    if not user.get('married_to'):
+        bot.send_message(message.chat.id, "❌ Ты не в браке!")
+        return
+    
+    spouse_uid = user['married_to']
+    spouse = get_user(spouse_uid)
+    
+    cost = 200
+    
+    if user['money'] < cost:
+        bot.send_message(message.chat.id, f"❌ Не хватает {cost} шекелей на развод!")
+        return
+    
+    user['money'] -= cost
+    user['married_to'] = None
+    spouse['married_to'] = None
+    save_data()
+    
+    bot.send_message(message.chat.id, 
+        f"💔 РАЗВОД 💔\n\n"
+        f"@{message.from_user.username} развелся с @{spouse['username']}\n"
+        f"💰 Стоимость развода: {cost} шекелей\n"
+        f"💵 Баланс: {user['money']}")
+    
+    bot.send_message(spouse_uid, f"💔 @{message.from_user.username} развелся с тобой!\n💰 Ему это обошлось в {cost} шекелей.")
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() == 'мой брак')
+def my_marriage_cmd(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    if not user.get('married_to'):
+        bot.send_message(message.chat.id, "💔 Ты не в браке!")
+        return
+    
+    spouse_uid = user['married_to']
+    spouse = get_user(spouse_uid)
+    
+    bot.send_message(message.chat.id, 
+        f"💒 ТВОЙ БРАК 💒\n\n"
+        f"👫 Супруг(а): @{spouse['username']}\n"
+        f"📅 В браке с: {datetime.now().strftime('%Y-%m-%d')}\n"
+        f"💝 Свадебный подарок: ачивка 'Семьянин' получена!")
+
 # ========== КОМАНДЫ ==========
 
 @bot.message_handler(commands=['start'])
@@ -193,7 +438,6 @@ def show_commands(message):
     msg += f"• рулетка - игра в рулетку\n"
     msg += f"• слоты - слоты с анимацией\n"
     msg += f"• блекджек - игра в 21\n"
-    msg += f"• дуэль - в разработке 🚧\n"
     msg += f"• колесо / фортуна - Колесо Фортуны (раз в час)\n\n"
     msg += f"--- ЗАРАБОТОК ---\n"
     msg += f"• работа / фарм - работа (КД 10 мин)\n"
@@ -204,13 +448,38 @@ def show_commands(message):
     msg += f"• топ - топ богатых\n"
     msg += f"• достижения - список достижений\n"
     msg += f"• стата - статистика бота\n\n"
+    msg += f"--- ПЕРЕВОДЫ ---\n"
+    msg += f"• дать [сумма] (ответом на сообщение)\n"
+    msg += f"💸 Лимит в день: 10000 шекелей\n\n"
+    msg += f"--- БРАКИ ---\n"
+    msg += f"• свадьба @username - предложить брак\n"
+    msg += f"• развод - развестись\n"
+    msg += f"• мой брак - информация о браке\n\n"
     msg += f"--- ПРОМОКОДЫ ---\n"
     msg += f"#промо название - активировать промокод"
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda m: m.text and m.text.lower() == 'дуэль')
-def duel_placeholder(message):
-    bot.send_message(message.chat.id, "🚧 ДУЭЛИ В РАЗРАБОТКЕ! 🚧\n\nСкоро появятся, следи за обновлениями!")
+@bot.message_handler(func=lambda m: m.text and 'шепель' in m.text.lower() and 'лох' in m.text.lower() and 'нищий' in m.text.lower() and 'бомж' in m.text.lower())
+def secret_achievement(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    if 'secret_insult' in user.get('achievements', []):
+        bot.send_message(message.chat.id, "❌ Ты уже получил эту секретную награду!")
+        return
+    
+    user['achievements'].append('secret_insult')
+    user['money'] += 5555
+    user['total_earned'] += 5555
+    add_exp(uid, 555)
+    save_data()
+    
+    bot.send_message(message.chat.id, 
+        f"🔓 СЕКРЕТНАЯ АЧИВКА РАЗБЛОКИРОВАНА! 🔓\n\n"
+        f"🏆 ШЕПЕЛЬФЕСТ\n"
+        f"💰 +5555 шекелей!\n"
+        f"⭐ +555 опыта!\n"
+        f"💵 Новый баланс: {user['money']}")
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['работа', 'фарм', 'работка'])
 def work_cmd(message):
@@ -265,7 +534,6 @@ def work_cmd(message):
     
     save_data()
     
-    # Проверка ачивок
     ach_msg = check_achievements(uid)
     if ach_msg:
         msg += ach_msg
@@ -294,6 +562,11 @@ def profile_cmd(message):
     else:
         left, prog, bar = 0, 100, '▓▓▓▓▓▓▓▓▓▓'
     
+    married = "Нет"
+    if user.get('married_to'):
+        spouse = get_user(user['married_to'])
+        married = f"@{spouse['username']}"
+    
     msg = f"📊 ПРОФИЛЬ 📊\n\n"
     msg += f"👤 @{user.get('username') or 'Нет имени'}\n"
     msg += f"🏆 Уровень {user['level']} - {level_info['name']}\n"
@@ -302,9 +575,12 @@ def profile_cmd(message):
     msg += f"📈 Всего: {user['total_earned']}\n"
     msg += f"🎁 Серия бонусов: {user.get('daily_streak', 0)}\n"
     msg += f"📦 Работ выполнено: {user.get('work_count', 0)}\n"
-    msg += f"🏆 Достижений получено: {len(user.get('achievements', []))}"
+    msg += f"🏆 Достижений получено: {len(user.get('achievements', []))}\n"
+    msg += f"💒 В браке с: {married}"
+    
     if left > 0:
         msg += f"\n\n📊 До {next_lvl} уровня:\n{bar} {prog}%\nОсталось: {left} опыта"
+    
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
@@ -430,7 +706,6 @@ def fortune_cmd(message):
             bot.send_message(message.chat.id, f"🎡 Колесо Фортуны доступно через {h}ч {m}мин!")
             return
     
-    # Выбор награды
     total_prob = sum(r['prob'] for r in FORTUNE_REWARDS)
     roll = random.randint(1, total_prob)
     cum = 0
@@ -472,9 +747,6 @@ SLOT_PAYOUTS = {
     ('🍒', '🍒', '🍒'): 10,
     ('🍊', '🍊', '🍊'): 10,
     ('🍋', '🍋', '🍋'): 10,
-    ('🍒', '🍒', '🍊'): 5,
-    ('🍊', '🍊', '🍒'): 5,
-    ('🍒', '🍊', '🍋'): 3,
 }
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['слоты', 'слот', 'казик'])
@@ -632,7 +904,7 @@ def roulette_amount(message):
     bot.send_message(message.chat.id, msg)
     del roulette_waiting[uid]
 
-# ========== БЛЕКДЖЕК ==========
+# ========== БЛЕКДЖЕК (УПРОЩЕННЫЙ И БЫСТРЫЙ) ==========
 
 def card_val(c):
     if c in ['J', 'Q', 'K']: return 10
@@ -640,8 +912,16 @@ def card_val(c):
     else: return int(c)
 
 def hand_sum(hand):
-    s = sum(card_val(c) for c in hand)
-    aces = hand.count('A')
+    s = 0
+    aces = 0
+    for c in hand:
+        if c in ['J', 'Q', 'K']:
+            s += 10
+        elif c == 'A':
+            aces += 1
+            s += 11
+        else:
+            s += int(c)
     while s > 21 and aces > 0:
         s -= 10
         aces -= 1
@@ -659,9 +939,9 @@ def new_deck():
 def bj_start(message):
     kb = telebot.types.InlineKeyboardMarkup()
     kb.add(
-        telebot.types.InlineKeyboardButton("🔟", callback_data='bj_10'),
-        telebot.types.InlineKeyboardButton("5️⃣0️⃣", callback_data='bj_50'),
-        telebot.types.InlineKeyboardButton("1️⃣0️⃣0️⃣", callback_data='bj_100')
+        telebot.types.InlineKeyboardButton("10", callback_data='bj_10'),
+        telebot.types.InlineKeyboardButton("50", callback_data='bj_50'),
+        telebot.types.InlineKeyboardButton("100", callback_data='bj_100')
     )
     bot.send_message(message.chat.id, "🃏 ВЫБЕРИ СТАВКУ", reply_markup=kb)
 
@@ -670,82 +950,94 @@ def bj_new(call):
     uid = call.from_user.id
     bet = int(call.data.split('_')[1])
     user = get_user(uid, call.from_user.username)
+    
     if user['money'] < bet:
         bot.answer_callback_query(call.id, f"❌ Не хватает {bet}!", show_alert=True)
         return
+    
     user['money'] -= bet
     save_data()
+    
     deck = new_deck()
+    player = [deck.pop(), deck.pop()]
+    dealer = [deck.pop(), deck.pop()]
+    
     bj_games[uid] = {
-        'bet': bet, 'player': [deck.pop(), deck.pop()], 'dealer': [deck.pop(), deck.pop()],
-        'deck': deck, 'chat_id': call.message.chat.id, 'msg_id': call.message.message_id
+        'bet': bet, 'player': player, 'dealer': dealer, 'deck': deck,
+        'chat_id': call.message.chat.id, 'msg_id': call.message.message_id
     }
-    bj_show(call.message.chat.id, uid, call.message.message_id)
+    
+    bj_show(uid)
     bot.answer_callback_query(call.id)
 
-def bj_show(chat_id, uid, msg_id):
+def bj_show(uid):
     g = bj_games.get(uid)
     if not g: return
+    
     ps = hand_sum(g['player'])
     ds = hand_sum([g['dealer'][0]])
+    
     msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
     msg += f"👨‍💼 ДИЛЕР: {g['dealer'][0]} | ?\n⭐ {ds} + ?\n\n"
     msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}"
+    
     kb = telebot.types.InlineKeyboardMarkup()
     kb.add(
         telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data='bj_hit'),
         telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data='bj_stand')
     )
+    
     try:
-        bot.edit_message_text(msg, chat_id, msg_id, reply_markup=kb)
-    except: pass
+        bot.edit_message_text(msg, g['chat_id'], g['msg_id'], reply_markup=kb)
+    except:
+        pass
 
 @bot.callback_query_handler(func=lambda call: call.data == 'bj_hit')
 def bj_hit(call):
     uid = call.from_user.id
     g = bj_games.get(uid)
+    
     if not g:
         bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
         return
+    
     card = g['deck'].pop()
     g['player'].append(card)
     ps = hand_sum(g['player'])
+    
     if ps > 21:
         msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n🎲 {' '.join(g['player'])}\n⭐ {ps} ❌ ПЕРЕБОР!\n\n💔 ТЫ ПРОИГРАЛ {g['bet']}!"
         try:
             bot.edit_message_text(msg, g['chat_id'], g['msg_id'])
-        except: pass
+        except:
+            pass
         bot.answer_callback_query(call.id, "ПЕРЕБОР!", show_alert=True)
         del bj_games[uid]
         return
+    
     bj_games[uid] = g
-    msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
-    msg += f"👨‍💼 ДИЛЕР: {g['dealer'][0]} | ?\n"
-    msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}"
-    kb = telebot.types.InlineKeyboardMarkup()
-    kb.add(
-        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data='bj_hit'),
-        telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data='bj_stand')
-    )
-    try:
-        bot.edit_message_text(msg, g['chat_id'], g['msg_id'], reply_markup=kb)
-    except: pass
+    bj_show(uid)
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'bj_stand')
 def bj_stand(call):
     uid = call.from_user.id
     g = bj_games.get(uid)
+    
     if not g:
         bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
         return
+    
     ps = hand_sum(g['player'])
     ds = hand_sum(g['dealer'])
+    
     while ds < 17:
         card = g['deck'].pop()
         g['dealer'].append(card)
         ds = hand_sum(g['dealer'])
+    
     user = get_user(uid, call.from_user.username)
+    
     if ds > 21 or ps > ds:
         win = g['bet'] * 2
         user['money'] += win
@@ -758,7 +1050,9 @@ def bj_stand(call):
     else:
         user['money'] += g['bet']
         res = f"🤝 НИЧЬЯ! +{g['bet']}"
+    
     save_data()
+    
     msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
     msg += f"👨‍💼 ДИЛЕР: {' '.join(g['dealer'])}\n⭐ {ds}\n\n"
     msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}\n\n{res}\n💰 БАЛАНС: {user['money']}"
@@ -769,7 +1063,9 @@ def bj_stand(call):
     
     try:
         bot.edit_message_text(msg, g['chat_id'], g['msg_id'])
-    except: pass
+    except:
+        pass
+    
     bot.answer_callback_query(call.id)
     del bj_games[uid]
 
@@ -781,6 +1077,8 @@ print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
 print("Слоты с анимацией - работают")
 print("Колесо Фортуны - работает")
 print("Достижения - работают")
+print("Перевод денег - работают (лимит 10000/день)")
+print("Браки - работают")
 print("=" * 50)
 
 bot.infinity_polling()
