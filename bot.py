@@ -14,7 +14,15 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = 'users.json'
 active_menus = {}
 bj_games = {}
-user_states = {}  # Для хранения состояний пользователей
+bj_multiplayer = {}  # Для многопользовательского блекджека
+roulette_waiting = {}
+
+# Промокоды
+PROMOCODES = {
+    'шепельпрезидент': {'money': 2000, 'exp': 200, 'used': []},
+    'тест': {'money': 2, 'exp': 0, 'used': []},
+    'куниза200шекелей': {'money': 199, 'exp': 0, 'used': []},
+}
 
 LEVELS = {
     1: {"name": "🫣 Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
@@ -31,11 +39,8 @@ def load_users():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                print(f"✅ Загружено {len(data)} профилей")
-                return data
+                return json.load(f)
         except:
-            print("❌ Ошибка загрузки, создаю новый файл")
             return {}
     return {}
 
@@ -61,10 +66,10 @@ def get_user(user_id, username=None):
             'username': username,
             'total_earned': 0,
             'last_daily': None,
-            'daily_streak': 0
+            'daily_streak': 0,
+            'promos_used': []
         }
         save_users(users)
-        print(f"🆕 Новый игрок: @{username}")
     else:
         if username and users[user_id].get('username') != username:
             users[user_id]['username'] = username
@@ -114,9 +119,10 @@ def keyboard():
 def commands_list(message):
     msg = f"📋 *СПИСОК КОМАНД* 📋\n\n"
     msg += f"┌─ 🎮 *ИГРЫ*\n"
-    msg += f"│  • рулетка / Рулетка 🎡 - игра в рулетку\n"
-    msg += f"│  • слоты / Слоты 🎰 - игра в слоты\n"
-    msg += f"│  • блекджек / Блек Джек 🃏 - игра в 21\n"
+    msg += f"│  • рулетка 🎡 - игра в рулетку\n"
+    msg += f"│  • слоты 🎰 - игра в слоты\n"
+    msg += f"│  • блекджек / блек джек 🃏 - игра в 21\n"
+    msg += f"│  • бджек Х - создать игру на Х игроков (2-4)\n"
     msg += f"├─ 💰 *ЗАРАБОТОК*\n"
     msg += f"│  • работа / фарм 🌾 - заработать (КД 10 мин)\n"
     msg += f"│  • бонус / ежедневный 🎁 - бонус (КД 12 ч)\n"
@@ -125,12 +131,362 @@ def commands_list(message):
     msg += f"│  • профиль / стата 📊 - твоя статистика\n"
     msg += f"│  • топ / лидеры 🏆 - топ богатых игроков\n"
     msg += f"│  • команды 📋 - этот список\n"
-    msg += f"└─ 🎁 *БОНУСЫ*\n"
-    msg += f"   • бонус - ежедневный (50-200 шекелей)\n"
-    msg += f"   • серия бонусов - увеличивает награду\n\n"
+    msg += f"├─ 🎁 *ПРОМОКОДЫ*\n"
+    msg += f"│  • #промо код - активировать промокод\n"
+    msg += f"└─ 🃏 *БЛЕКДЖЕК НА КОМПАНИЮ*\n"
+    msg += f"   • бджек 2 - игра на 2 игроков\n"
+    msg += f"   • бджек 3 - игра на 3 игроков\n"
+    msg += f"   • бджек 4 - игра на 4 игроков\n"
+    msg += f"   • войти - присоединиться к игре\n"
+    msg += f"   • старт - начать игру (админ)\n\n"
     msg += f"💡 *СОВЕТ:* Чем выше уровень, тем больше зарплата!\n"
     msg += f"🎲 Удачи, братан!"
     bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+
+# ===== ПРОМОКОДЫ =====
+
+def promo_command(message, promo_text):
+    user = get_user(message.from_user.id, message.from_user.username)
+    
+    # Проверяем использовал ли уже
+    if promo_text in user.get('promos_used', []):
+        bot.send_message(message.chat.id, f"❌ Ты уже использовал промокод *{promo_text}*!", parse_mode='Markdown')
+        return
+    
+    # Ищем промокод
+    if promo_text in PROMOCODES:
+        promo = PROMOCODES[promo_text]
+        
+        # Добавляем деньги и опыт
+        user['money'] += promo['money']
+        user['total_earned'] += promo['money']
+        add_exp(message.from_user.id, promo['exp'])
+        
+        # Отмечаем как использованный
+        if 'promos_used' not in user:
+            user['promos_used'] = []
+        user['promos_used'].append(promo_text)
+        save_users(users)
+        
+        level_up = add_exp(message.from_user.id, promo['exp'])
+        
+        msg = f"🎁 *ПРОМОКОД АКТИВИРОВАН!* 🎁\n\n"
+        msg += f"✅ Промокод: *{promo_text}*\n"
+        msg += f"💰 +{promo['money']} шекелей\n"
+        msg += f"⭐ +{promo['exp']} опыта\n"
+        msg += f"💵 Новый баланс: *{user['money']}*"
+        
+        if level_up:
+            new_level = get_level_info(user['level'])
+            msg += f"\n\n🎉 *НОВЫЙ УРОВЕНЬ!* 🎉\n"
+            msg += f"📈 Теперь ты *{user['level']}* - {new_level['name']}"
+        
+        bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+    else:
+        bot.send_message(message.chat.id, f"❌ Промокод *{promo_text}* не найден!", parse_mode='Markdown')
+
+# ===== МНОГОПОЛЬЗОВАТЕЛЬСКИЙ БЛЕКДЖЕК =====
+
+def card_value(card):
+    if card in ['J', 'Q', 'K']:
+        return 10
+    elif card == 'A':
+        return 11
+    else:
+        return int(card)
+
+def hand_score(hand):
+    score = 0
+    aces = 0
+    for c in hand:
+        if c in ['J', 'Q', 'K']:
+            score += 10
+        elif c == 'A':
+            aces += 1
+            score += 11
+        else:
+            score += int(c)
+    while score > 21 and aces > 0:
+        score -= 10
+        aces -= 1
+    return score
+
+def new_deck():
+    d = []
+    for _ in range(4):
+        for c in ['2','3','4','5','6','7','8','9','10','J','Q','K','A']:
+            d.append(c)
+    random.shuffle(d)
+    return d
+
+def bj_multi_start(message, players_count):
+    user_id = message.from_user.id
+    user = get_user(user_id, message.from_user.username)
+    
+    # Проверяем есть ли уже активная игра
+    if user_id in bj_multiplayer or any(user_id in game['players'] for game in bj_multiplayer.values()):
+        bot.send_message(message.chat.id, "❌ Ты уже в игре!", parse_mode='Markdown')
+        return
+    
+    # Создаем новую игру
+    game_id = str(int(time.time()))
+    bj_multiplayer[game_id] = {
+        'host': user_id,
+        'players': {user_id: {'hand': [], 'bet': 0, 'score': 0, 'finished': False}},
+        'players_count': players_count,
+        'status': 'waiting',
+        'deck': None,
+        'dealer_hand': [],
+        'current_player': None
+    }
+    
+    msg = f"🃏 *БЛЕКДЖЕК НА {players_count} ИГРОКОВ* 🃏\n\n"
+    msg += f"👑 Хост: @{message.from_user.username}\n"
+    msg += f"👥 Игроки: 1/{players_count}\n\n"
+    msg += f"📝 Чтобы присоединиться, напиши *войти*\n"
+    msg += f"🚀 Когда все соберутся, хост пишет *старт*"
+    
+    bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+
+def bj_multi_join(message):
+    user_id = message.from_user.id
+    
+    # Ищем открытую игру
+    for game_id, game in bj_multiplayer.items():
+        if game['status'] == 'waiting' and user_id not in game['players'] and len(game['players']) < game['players_count']:
+            game['players'][user_id] = {'hand': [], 'bet': 0, 'score': 0, 'finished': False}
+            
+            msg = f"✅ @{message.from_user.username} присоединился!\n"
+            msg += f"👥 Игроки: {len(game['players'])}/{game['players_count']}\n\n"
+            
+            if len(game['players']) == game['players_count']:
+                msg += f"🚀 Все собрались! Хост, напиши *старт*"
+            
+            bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+            return
+    
+    bot.send_message(message.chat.id, "❌ Нет открытых игр или ты уже в игре!", parse_mode='Markdown')
+
+def bj_multi_start_game(message):
+    user_id = message.from_user.id
+    
+    for game_id, game in bj_multiplayer.items():
+        if game['host'] == user_id and game['status'] == 'waiting':
+            if len(game['players']) < 2:
+                bot.send_message(message.chat.id, "❌ Нужно минимум 2 игрока!", parse_mode='Markdown')
+                return
+            
+            # Запрашиваем ставки
+            game['status'] = 'betting'
+            game['game_id'] = game_id
+            
+            for player_id in game['players']:
+                player = get_user(player_id)
+                bot.send_message(player_id, f"🃏 *БЛЕКДЖЕК* 🃏\n\n💰 Введи свою ставку (минимум 10 шекелей):")
+            
+            bj_multiplayer[game_id] = game
+            return
+    
+    bot.send_message(message.chat.id, "❌ Ты не хост или нет активной игры!", parse_mode='Markdown')
+
+def bj_multi_place_bet(message):
+    user_id = message.from_user.id
+    
+    # Проверяем есть ли игра где игрок еще не поставил
+    for game_id, game in bj_multiplayer.items():
+        if game['status'] == 'betting' and user_id in game['players'] and game['players'][user_id]['bet'] == 0:
+            try:
+                bet = int(message.text.strip())
+                if bet < 10:
+                    bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!", parse_mode='Markdown')
+                    return
+            except:
+                bot.send_message(message.chat.id, "❌ Введи число!", parse_mode='Markdown')
+                return
+            
+            user = get_user(user_id)
+            if user['money'] < bet:
+                bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!", parse_mode='Markdown')
+                return
+            
+            user['money'] -= bet
+            save_users(users)
+            
+            game['players'][user_id]['bet'] = bet
+            bot.send_message(message.chat.id, f"✅ Ставка *{bet}* принята!", parse_mode='Markdown')
+            
+            # Проверяем все ли поставили
+            all_bet = all(p['bet'] > 0 for p in game['players'].values())
+            if all_bet:
+                bj_multi_deal(game_id)
+            return
+
+def bj_multi_deal(game_id):
+    game = bj_multiplayer[game_id]
+    deck = new_deck()
+    game['deck'] = deck
+    game['status'] = 'playing'
+    
+    # Раздаем карты
+    for player_id in game['players']:
+        game['players'][player_id]['hand'] = [deck.pop(), deck.pop()]
+        game['players'][player_id]['score'] = hand_score(game['players'][player_id]['hand'])
+    
+    game['dealer_hand'] = [deck.pop(), deck.pop()]
+    
+    # Начинаем с первого игрока
+    players_list = list(game['players'].keys())
+    game['current_player'] = players_list[0]
+    
+    bj_multi_show_turn(game_id)
+
+def bj_multi_show_turn(game_id):
+    game = bj_multiplayer[game_id]
+    current_player = game['current_player']
+    player_data = game['players'][current_player]
+    player = get_user(current_player)
+    
+    dealer_score = hand_score([game['dealer_hand'][0]])
+    
+    msg = f"🃏 *БЛЕКДЖЕК* 🃏\n\n"
+    msg += f"💰 Твоя ставка: *{player_data['bet']}* шекелей\n\n"
+    msg += f"🤵 *ДИЛЕР:* {game['dealer_hand'][0]} | ❓\n"
+    msg += f"⭐ Очки: *{dealer_score}* + ?\n\n"
+    msg += f"🎲 *ТВОИ КАРТЫ:* {' '.join(player_data['hand'])}\n"
+    msg += f"⭐ Очки: *{player_data['score']}*\n"
+    
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data=f'bjm_hit_{game_id}'),
+        telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data=f'bjm_stand_{game_id}')
+    )
+    
+    bot.send_message(current_player, msg, parse_mode='Markdown', reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('bjm_'))
+def bj_multi_action(call):
+    action, game_id = call.data.split('_')[1], call.data.split('_')[2]
+    user_id = call.from_user.id
+    game = bj_multiplayer.get(game_id)
+    
+    if not game or game['status'] != 'playing' or game['current_player'] != user_id:
+        bot.answer_callback_query(call.id, "❌ Не твой ход!", show_alert=True)
+        return
+    
+    player_data = game['players'][user_id]
+    
+    if action == 'hit':
+        card = game['deck'].pop()
+        player_data['hand'].append(card)
+        player_data['score'] = hand_score(player_data['hand'])
+        
+        if player_data['score'] > 21:
+            # Перебор
+            msg = f"🃏 *БЛЕКДЖЕК* 🃏\n\n"
+            msg += f"💰 Ставка: *{player_data['bet']}* шекелей\n\n"
+            msg += f"🎲 *ТВОИ КАРТЫ:* {' '.join(player_data['hand'])}\n"
+            msg += f"⭐ Очки: *{player_data['score']}* ❌ *ПЕРЕБОР!*\n\n"
+            msg += f"💔 *ТЫ ПРОИГРАЛ* {player_data['bet']} шекелей!"
+            
+            bot.edit_message_text(msg, call.message.chat.id, call.message.message_id, parse_mode='Markdown')
+            player_data['finished'] = True
+            
+            # Следующий игрок
+            bj_multi_next_player(game_id, call.message.chat.id)
+        else:
+            # Обновляем сообщение
+            msg = f"🃏 *БЛЕКДЖЕК* 🃏\n\n"
+            msg += f"💰 Ставка: *{player_data['bet']}* шекелей\n\n"
+            msg += f"🤵 *ДИЛЕР:* {game['dealer_hand'][0]} | ❓\n"
+            msg += f"⭐ Очки: *{hand_score([game['dealer_hand'][0]])}* + ?\n\n"
+            msg += f"🎲 *ТВОИ КАРТЫ:* {' '.join(player_data['hand'])}\n"
+            msg += f"⭐ Очки: *{player_data['score']}*\n"
+            
+            kb = telebot.types.InlineKeyboardMarkup()
+            kb.add(
+                telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data=f'bjm_hit_{game_id}'),
+                telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data=f'bjm_stand_{game_id}')
+            )
+            
+            bot.edit_message_text(msg, call.message.chat.id, call.message.message_id, parse_mode='Markdown', reply_markup=kb)
+    
+    elif action == 'stand':
+        player_data['finished'] = True
+        bot.edit_message_text(f"✋ Ты остановился с *{player_data['score']}* очками", 
+                              call.message.chat.id, call.message.message_id, parse_mode='Markdown')
+        bj_multi_next_player(game_id, call.message.chat.id)
+    
+    bot.answer_callback_query(call.id)
+
+def bj_multi_next_player(game_id, chat_id):
+    game = bj_multiplayer[game_id]
+    players_list = list(game['players'].keys())
+    current_idx = players_list.index(game['current_player'])
+    
+    # Ищем следующего непрошедшего игрока
+    for i in range(current_idx + 1, len(players_list)):
+        if not game['players'][players_list[i]]['finished']:
+            game['current_player'] = players_list[i]
+            bj_multi_show_turn(game_id)
+            return
+    
+    # Все игроки закончили, ход дилера
+    bj_multi_dealer_turn(game_id)
+
+def bj_multi_dealer_turn(game_id):
+    game = bj_multiplayer[game_id]
+    dealer_score = hand_score(game['dealer_hand'])
+    
+    while dealer_score < 17:
+        card = game['deck'].pop()
+        game['dealer_hand'].append(card)
+        dealer_score = hand_score(game['dealer_hand'])
+    
+    # Подводим итоги
+    results = []
+    for player_id, player_data in game['players'].items():
+        user = get_user(player_id)
+        player_score = player_data['score']
+        
+        if player_score > 21:
+            # Уже проиграл
+            results.append(f"💔 @{user['username']} - ПЕРЕБОР (проиграл {player_data['bet']})")
+        elif dealer_score > 21:
+            win = player_data['bet'] * 2
+            user['money'] += win
+            user['total_earned'] += win
+            add_exp(player_id, win // 4)
+            results.append(f"🎉 @{user['username']} - ПОБЕДА! +{win}")
+        elif player_score > dealer_score:
+            win = player_data['bet'] * 2
+            user['money'] += win
+            user['total_earned'] += win
+            add_exp(player_id, win // 4)
+            results.append(f"🎉 @{user['username']} - ПОБЕДА! +{win}")
+        elif player_score < dealer_score:
+            results.append(f"💔 @{user['username']} - ПРОИГРЫШ (-{player_data['bet']})")
+        else:
+            user['money'] += player_data['bet']
+            results.append(f"🤝 @{user['username']} - НИЧЬЯ (вернули {player_data['bet']})")
+        
+        save_users(users)
+    
+    msg = f"🃏 *РЕЗУЛЬТАТ ИГРЫ* 🃏\n\n"
+    msg += f"🤵 *ДИЛЕР:* {' '.join(game['dealer_hand'])}\n"
+    msg += f"⭐ Очки дилера: *{dealer_score}*\n\n"
+    msg += f"📊 *РЕЗУЛЬТАТЫ:*\n"
+    for r in results:
+        msg += f"{r}\n"
+    
+    for player_id in game['players']:
+        try:
+            bot.send_message(player_id, msg, parse_mode='Markdown')
+        except:
+            pass
+    
+    del bj_multiplayer[game_id]
+
+# ===== ОСТАЛЬНЫЕ КОМАНДЫ =====
 
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def handle_all_messages(message):
@@ -140,12 +496,41 @@ def handle_all_messages(message):
     
     user = get_user(user_id, username)
     
-    # Проверка на состояние (ожидание ввода ставки для рулетки)
-    if user_id in user_states and user_states[user_id].get('waiting') == 'roulette_bet':
-        roulette_place_bet(message, user_states[user_id]['bet_type'])
+    # Промокоды
+    if text.startswith('#промо'):
+        promo_text = text.replace('#промо', '').strip().lower()
+        promo_command(message, promo_text)
         return
     
-    # Обработка команд
+    # Блекджек на компанию
+    if text == 'бджек 2':
+        bj_multi_start(message, 2)
+        return
+    elif text == 'бджек 3':
+        bj_multi_start(message, 3)
+        return
+    elif text == 'бджек 4':
+        bj_multi_start(message, 4)
+        return
+    elif text == 'войти':
+        bj_multi_join(message)
+        return
+    elif text == 'старт':
+        bj_multi_start_game(message)
+        return
+    
+    # Ставки для многопользовательского блекджека
+    for game_id, game in bj_multiplayer.items():
+        if game['status'] == 'betting' and user_id in game['players'] and game['players'][user_id]['bet'] == 0:
+            try:
+                bet = int(message.text)
+                if bet >= 10:
+                    bj_multi_place_bet(message)
+                return
+            except:
+                pass
+    
+    # Обычные команды
     if text in ['/start', 'start']:
         start_command(message, user)
     elif text in ['команды', 'commands', 'help', 'помощь', 'помоги']:
@@ -178,8 +563,7 @@ def start_command(message, user):
         f"📊 Твой уровень: *{user['level']}* - {level_info['name']}\n\n"
         f"📝 Напиши *'команды'* чтобы увидеть все команды!\n\n"
         f"🎲 Удачи, братан!",
-        parse_mode='Markdown',
-        reply_markup=keyboard()
+        parse_mode='Markdown'
     )
 
 def work_command(message, user):
@@ -213,7 +597,7 @@ def work_command(message, user):
     if level_up:
         new_level = get_level_info(user['level'])
         msg += f"\n\n🎉 *НОВЫЙ УРОВЕНЬ!* 🎉\n"
-        msg += f"📈 Теперь ты *{user['level']}* уровень - {new_level['name']}"
+        msg += f"📈 Теперь ты *{user['level']}* - {new_level['name']}"
     
     bot.send_message(message.chat.id, msg, parse_mode='Markdown')
 
@@ -314,7 +698,7 @@ def daily_bonus_command(message, user):
     
     bot.send_message(message.chat.id, msg, parse_mode='Markdown')
 
-# ===== РУЛЕТКА (РАБОЧАЯ) =====
+# ===== РУЛЕТКА =====
 
 def roulette_menu_command(message):
     user_id = message.from_user.id
@@ -334,46 +718,44 @@ def roulette_menu_command(message):
     
     bot.send_message(message.chat.id, "🎡 *РУЛЕТКА* 🎡\n\nВыбери тип ставки:", parse_mode='Markdown', reply_markup=kb)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('roulette_') and len(call.data) < 15)
+@bot.callback_query_handler(func=lambda call: call.data.startswith('roulette_'))
 def roulette_choose_bet(call):
     user_id = call.from_user.id
     bet_type = call.data.split('_')[1]
     
-    # Сохраняем тип ставки и ждем сумму
-    user_states[user_id] = {'waiting': 'roulette_bet', 'bet_type': bet_type}
+    roulette_waiting[user_id] = bet_type
     
     bot.edit_message_text("🎡 *РУЛЕТКА* 🎡\n\n💰 Введи сумму ставки (минимум 10 шекелей):", 
                           call.message.chat.id, call.message.message_id, parse_mode='Markdown')
     bot.answer_callback_query(call.id)
 
-def roulette_place_bet(message, bet_type):
+@bot.message_handler(func=lambda m: m.from_user.id in roulette_waiting)
+def roulette_place_bet(message):
     user_id = message.from_user.id
+    bet_type = roulette_waiting[user_id]
     
     try:
         bet = int(message.text.strip())
         if bet < 10:
             bot.send_message(message.chat.id, "❌ Минимальная ставка *10 шекелей*!", parse_mode='Markdown')
-            del user_states[user_id]
             return
     except:
         bot.send_message(message.chat.id, "❌ Введи *число*!", parse_mode='Markdown')
-        del user_states[user_id]
+        del roulette_waiting[user_id]
         return
     
     user = get_user(user_id, message.from_user.username)
     
     if user['money'] < bet:
         bot.send_message(message.chat.id, f"❌ Не хватает *{bet}* шекелей! У тебя *{user['money']}*", parse_mode='Markdown')
-        del user_states[user_id]
+        del roulette_waiting[user_id]
         return
     
     user['money'] -= bet
     save_users(users)
     
-    # Выпавшее число
     result_num = random.randint(0, 36)
     
-    # Определяем цвет
     if result_num == 0:
         result_color = 'green'
         color_emoji = '🟢'
@@ -384,7 +766,6 @@ def roulette_place_bet(message, bet_type):
         result_color = 'black'
         color_emoji = '⚫'
     
-    # Проверка выигрыша
     win = 0
     if bet_type == 'red' and result_color == 'red':
         win = bet * 2
@@ -427,7 +808,7 @@ def roulette_place_bet(message, bet_type):
         msg += f"💵 Новый баланс: *{user['money']}*"
     
     bot.send_message(message.chat.id, msg, parse_mode='Markdown')
-    del user_states[user_id]
+    del roulette_waiting[user_id]
 
 # ===== СЛОТЫ =====
 
@@ -497,7 +878,7 @@ def slots_play(call):
     if user_id in active_menus:
         del active_menus[user_id]
 
-# ===== БЛЕК ДЖЕК =====
+# ===== ОДИНОЧНЫЙ БЛЕКДЖЕК =====
 
 def bj_menu_command(message):
     user_id = message.from_user.id
@@ -510,38 +891,6 @@ def bj_menu_command(message):
         telebot.types.InlineKeyboardButton("100 💰", callback_data='bj_100')
     )
     bot.send_message(message.chat.id, "🃏 *ВЫБЕРИ СТАВКУ:*", parse_mode='Markdown', reply_markup=kb)
-
-def card_value(card):
-    if card in ['J', 'Q', 'K']:
-        return 10
-    elif card == 'A':
-        return 11
-    else:
-        return int(card)
-
-def hand_score(hand):
-    score = 0
-    aces = 0
-    for c in hand:
-        if c in ['J', 'Q', 'K']:
-            score += 10
-        elif c == 'A':
-            aces += 1
-            score += 11
-        else:
-            score += int(c)
-    while score > 21 and aces > 0:
-        score -= 10
-        aces -= 1
-    return score
-
-def new_deck():
-    d = []
-    for _ in range(4):
-        for c in ['2','3','4','5','6','7','8','9','10','J','Q','K','A']:
-            d.append(c)
-    random.shuffle(d)
-    return d
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('bj_') and len(call.data) < 7)
 def bj_new(call):
@@ -719,9 +1068,8 @@ def bj_stand(call):
 
 print("=" * 50)
 print("🤖 ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
-print("✅ Рулетка: работает!")
-print("🎁 Ежедневный бонус: КД 12 часов")
-print("📋 Команда 'команды' - список всех команд")
+print("🎮 Блекджек на 2-4 игрока - работает!")
+print("🎁 Промокоды: #промо шепельпрезидент, #промо тест, #промо куниза200шекелей")
 print("=" * 50)
 
 bot.infinity_polling()
