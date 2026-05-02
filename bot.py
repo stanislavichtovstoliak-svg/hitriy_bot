@@ -56,7 +56,7 @@ def save_all():
 DEFAULT_USER = {
     'money': 500, 'level': 1, 'exp': 0, 'total_exp': 0, 'last_work': None,
     'username': None, 'total_earned': 0, 'last_daily': None, 'daily_streak': 0,
-    'promos': [], 'work_count': 0, 'slot_wins': 0, 'roulette_wins': 0,
+    'promos_used': [], 'work_count': 0, 'slot_wins': 0, 'roulette_wins': 0,
     'bet_wins': 0, 'shop_buffs': {}, 'daily_quests': None, 'last_quest_reset': None,
     'lotto_ticket': None, 'lotto_wins': 0, 'bank': 0, 'bank_deposit': 0,
     'bank_time': None, 'last_game': None
@@ -86,7 +86,7 @@ SHOP_ITEMS = {
     4: {'name': '+25% к зарплате', 'price': 400, 'duration': 86400, 'effect': 'salary_multiplier', 'value': 1.25},
 }
 
-# ========== ПРОМОКОДЫ (БЕЗЛИМИТНЫЕ) ==========
+# ========== ПРОМОКОДЫ (ОДНОРАЗОВЫЕ ДЛЯ КАЖДОГО) ==========
 PROMOCODES = {
     'шепельпрезидент': {'money': 2000, 'exp': 200},
     'тест': {'money': 2, 'exp': 0},
@@ -96,7 +96,7 @@ PROMOCODES = {
     'квестыилотерея': {'money': 100, 'exp': 50},
 }
 
-# ========== СЛОТЫ (НОВАЯ ВЕРСИЯ) ==========
+# ========== СЛОТЫ (5x3) ==========
 SLOT_SYMBOLS = {
     '🍒': {'name': 'Вишня', 'mult': 1},
     '🍊': {'name': 'Апельсин', 'mult': 1},
@@ -249,12 +249,26 @@ def update_quest(uid, qtype, amount=1):
         save_all()
     return msg
 
+def calculate_slot_win(grid, bet):
+    total_win = 0
+    wins = []
+    for line in SLOT_LINES:
+        symbols = []
+        for coord in line['coords']:
+            symbols.append(grid[coord[0]][coord[1]])
+        first_sym = symbols[0]
+        if all(s == first_sym for s in symbols):
+            mult = SLOT_SYMBOLS.get(first_sym, {}).get('mult', 1)
+            line_win = bet * mult
+            total_win += line_win
+            wins.append(f"• {line['name']}: {first_sym} x{mult} = +{line_win}💰")
+    return total_win, wins
+
 # ========== ПЕРЕВОД ДЕНЕГ ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('дать') and m.reply_to_message)
 def transfer_money(m):
     uid = m.from_user.id
     user = get_user(uid, m.from_user.username)
-    
     target_uid = m.reply_to_message.from_user.id
     target_user = get_user(target_uid, m.reply_to_message.from_user.username)
     
@@ -286,7 +300,7 @@ def transfer_money(m):
     
     bot.send_message(m.chat.id, f"💸 ПЕРЕВОД 💸\n\n👤 @{m.from_user.username} → @{m.reply_to_message.from_user.username}\n💰 Сумма: {amount} шекелей\n💵 Ваш баланс: {user['money']}")
 
-# ========== ОСНОВНЫЕ КОМАНДЫ ==========
+# ========== КОМАНДЫ ==========
 @bot.message_handler(commands=['start'])
 def start_cmd(m):
     uid = m.from_user.id
@@ -497,17 +511,27 @@ def daily_cmd(m):
     
     bot.send_message(m.chat.id, msg)
 
-# ========== ПРОМОКОДЫ (БЕЗЛИМИТНЫЕ) ==========
+# ========== ПРОМОКОДЫ (ОДНОРАЗОВЫЕ ДЛЯ КАЖДОГО) ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('#промо'))
 def promo_cmd(m):
     uid = m.from_user.id
     u = get_user(uid, m.from_user.username)
     promo = m.text.lower().replace('#промо', '').strip()
     
+    # Проверка, использовал ли уже этот пользователь данный промокод
+    if promo in u.get('promos_used', []):
+        bot.send_message(m.chat.id, f"❌ Ты уже использовал промокод {promo}!")
+        return
+    
     if promo in PROMOCODES:
         p = PROMOCODES[promo]
         u['money'] += p['money']
         u['total_earned'] += p['money']
+        
+        if 'promos_used' not in u:
+            u['promos_used'] = []
+        u['promos_used'].append(promo)
+        
         msg = f"🎁 ПРОМОКОД АКТИВИРОВАН!\n\n✅ {promo}\n💰 +{p['money']}"
         if p['exp'] > 0:
             leveled = add_exp(uid, p['exp'])
@@ -518,11 +542,11 @@ def promo_cmd(m):
         save_all()
         bot.send_message(m.chat.id, msg)
     else:
-        bot.send_message(m.chat.id, f"❌ Промокод не найден!")
+        bot.send_message(m.chat.id, f"❌ Промокод {promo} не найден!")
 
-# ========== СЕКРЕТНАЯ АЧИВКА ==========
+# ========== СЕКРЕТНАЯ НАГРАДА ==========
 @bot.message_handler(func=lambda m: m.text and all(w in m.text.lower() for w in ['шепель', 'лох', 'нищий', 'бомж']))
-def secret_achievement(m):
+def secret_reward(m):
     uid = m.from_user.id
     u = get_user(uid, m.from_user.username)
     if u.get('secret_reward', False):
@@ -698,25 +722,7 @@ def buy_cmd(m):
     save_all()
     bot.send_message(m.chat.id, f"✅ {item['name']} куплен!\n💵 Баланс: {u['money']}")
 
-# ========== СЛОТЫ (НОВАЯ ВЕРСИЯ 5x3) ==========
-def calculate_slot_win(grid, bet):
-    total_win = 0
-    wins = []
-    
-    for line in SLOT_LINES:
-        symbols = []
-        for coord in line['coords']:
-            symbols.append(grid[coord[0]][coord[1]])
-        
-        first_sym = symbols[0]
-        if all(s == first_sym for s in symbols):
-            mult = SLOT_SYMBOLS.get(first_sym, {}).get('mult', 1)
-            line_win = bet * mult
-            total_win += line_win
-            wins.append(f"• {line['name']}: {first_sym} x{mult} = +{line_win}💰")
-    
-    return total_win, wins
-
+# ========== СЛОТЫ (5x3) ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['слоты', 'слот'])
 def slots_start(m):
     cd = check_game_cooldown(m.from_user.id)
@@ -748,7 +754,6 @@ def slots_play(m):
     set_game_cooldown(uid)
     save_all()
     
-    # Анимация
     anim = bot.send_message(m.chat.id, "🎰 СЛОТЫ 5x3 🎰\n\n🔄 | 🔄 | 🔄 | 🔄 | 🔄\n🔄 | 🔄 | 🔄 | 🔄 | 🔄\n🔄 | 🔄 | 🔄 | 🔄 | 🔄\n\nКРУТИМ...")
     
     symbols_list = list(SLOT_SYMBOLS.keys())
@@ -761,11 +766,9 @@ def slots_play(m):
             disp += f"│ {' │ '.join(row)} │\n"
         bot.edit_message_text(f"🎰 СЛОТЫ 5x3 🎰\n\n{disp}\nКРУТИМ...", m.chat.id, anim.message_id)
     
-    # Финальный результат
     grid = [[random.choice(symbols_list) for _ in range(5)] for _ in range(3)]
     win, win_details = calculate_slot_win(grid, bet)
     
-    # Отображение
     display = ""
     for row in grid:
         display += f"│ {' │ '.join(row)} │\n"
@@ -1071,7 +1074,7 @@ print("ХИТРЫЙ ЕВРЕЙ — ФИНАЛЬНАЯ ВЕРСИЯ")
 print("СЛОТЫ 5x3 — 10 ЛИНИЙ ВЫПЛАТ")
 print("РУЛЕТКА — КД 10 СЕК")
 print("БАНК — ДЕПОЗИТ 4%")
-print("ПРОМОКОДЫ — БЕЗЛИМИТ")
+print("ПРОМОКОДЫ — ОДНОРАЗОВЫЕ ДЛЯ КАЖДОГО")
 print("ПЕРЕВОДЫ — ДАТЬ [СУММА]")
 print("=" * 50)
 
