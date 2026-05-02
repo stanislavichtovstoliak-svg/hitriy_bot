@@ -7,7 +7,7 @@ import time
 import re
 import os
 # ===== ВСТАВЬ СВОЙ ТОКЕН СЮДА =====
-TOKEN = '8672284943:AAGHqbF-6F-JXYUAe-rgTdhiXQwwv_4nZ9k'
+TOKEN = os.environ.get('TOKEN', '8672284943:AAFtNxZNTR95r_dbbq_lb9sXldVlVk200ag')
 # ===================================
 
 bot = telebot.TeleBot(TOKEN)
