@@ -54,7 +54,6 @@ def get_user(user_id, username=None):
         }
         save_users(users)
     else:
-        # Обновляем юзернейм если он изменился
         if username and users[user_id].get('username') != username:
             users[user_id]['username'] = username
             save_users(users)
@@ -95,7 +94,7 @@ def get_top_players(limit=10):
 
 def keyboard():
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    btns = ['🌾 Работа', '💰 Баланс', '📊 Профиль', '🏆 Топ', '🎁 Бонус']
+    btns = ['🌾 Работа', '💰 Баланс', '📊 Профиль', '🏆 Топ', '🎁 Бонус', '🎡 Рулетка']
     kb.add(*btns)
     kb.add('🎰 Слоты', '🃏 Блек Джек')
     return kb
@@ -108,10 +107,8 @@ def handle_all_messages(message):
     username = message.from_user.username
     text = message.text.lower().strip()
     
-    # АВТОМАТИЧЕСКОЕ СОЗДАНИЕ/ОБНОВЛЕНИЕ ПРОФИЛЯ
     user = get_user(user_id, username)
     
-    # Команды
     if text in ['/start', 'start']:
         start_command(message, user)
     elif text in ['работа', 'фарм', 'фармить', 'работка', '🌾 работа']:
@@ -122,8 +119,10 @@ def handle_all_messages(message):
         profile_command(message, user)
     elif text in ['топ', 'топ10', 'лидеры', 'богатые', '🏆 топ']:
         top_command(message)
-    elif text in ['бонус', 'ежедневный', 'daily', '🎁 бонус']:
+    elif text in ['бонус', 'ежедневный', 'ежедневный бонус', 'daily', '🎁 бонус']:
         daily_bonus_command(message, user)
+    elif text in ['рулетка', 'рулетку', '🎡 рулетка']:
+        roulette_menu_command(message)
     elif text in ['слоты', 'слот', 'казик', '🎰 слоты']:
         slots_menu_command(message)
     elif text in ['блекджек', 'блек джек', 'blackjack', '21', '🃏 блек джек']:
@@ -139,14 +138,15 @@ def start_command(message, user):
         f"🎮 ХИТРЫЙ ЕВРЕЙ 🎮\n\n"
         f"💰 Стартовый капитал: 500 шекелей\n"
         f"📊 Твой уровень: {user['level']} - {level_info['name']}\n\n"
-        f"📝 КОМАНДЫ (можно писать словами):\n"
-        f"• Работа / фарм - заработать (КД 10 мин)\n"
-        f"• Бонус / ежедневный - получить бонус (КД 12 ч)\n"
+        f"📝 КОМАНДЫ:\n"
+        f"• Работа - заработать (КД 10 мин)\n"
+        f"• Бонус - ежедневный (КД 12 ч)\n"
+        f"• Рулетка - играть в рулетку\n"
+        f"• Слоты - играть в слоты\n"
+        f"• Блекджек - играть в 21\n"
         f"• Баланс - проверить деньги\n"
         f"• Профиль - твоя стата\n"
-        f"• Топ - богатые игроки\n"
-        f"• Слоты - играть\n"
-        f"• Блекджек - играть в 21",
+        f"• Топ - богатые игроки",
         reply_markup=keyboard()
     )
 
@@ -275,6 +275,99 @@ def daily_bonus_command(message, user):
     msg += f"💵 Баланс: {user['money']}"
     
     bot.send_message(message.chat.id, msg)
+
+# ===== РУЛЕТКА =====
+
+def roulette_menu_command(message):
+    user_id = message.from_user.id
+    active_menus[user_id] = 'roulette'
+    
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(telebot.types.InlineKeyboardButton("🔴 КРАСНОЕ", callback_data='roulette_red'))
+    kb.add(telebot.types.InlineKeyboardButton("⚫ ЧЕРНОЕ", callback_data='roulette_black'))
+    kb.add(telebot.types.InlineKeyboardButton("🟢 ЗЕЛЕНЫЙ (0)", callback_data='roulette_green'))
+    kb.add(telebot.types.InlineKeyboardButton("📊 ЧЕТ", callback_data='roulette_even'))
+    kb.add(telebot.types.InlineKeyboardButton("📊 НЕЧЕТ", callback_data='roulette_odd'))
+    
+    bot.send_message(message.chat.id, "🎡 РУЛЕТКА 🎡\n\nВыбери тип ставки:", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('roulette_'))
+def roulette_bet(call):
+    user_id = call.from_user.id
+    
+    if user_id not in active_menus or active_menus[user_id] != 'roulette':
+        bot.answer_callback_query(call.id, "❌ Нажми 'Рулетка' сначала!", show_alert=True)
+        return
+    
+    bet_type = call.data.split('_')[1]
+    
+    # Запрашиваем сумму ставки
+    active_menus[user_id] = f'roulette_bet_{bet_type}'
+    bot.send_message(call.message.chat.id, "💰 Введи сумму ставки (минимум 10 шекелей):")
+    bot.answer_callback_query(call.id)
+
+@bot.message_handler(func=lambda m: active_menus.get(m.from_user.id, '').startswith('roulette_bet_'))
+def roulette_place_bet(message):
+    user_id = message.from_user.id
+    bet_type = active_menus[user_id].split('_')[2]
+    
+    try:
+        bet = int(message.text.strip())
+        if bet < 10:
+            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        return
+    
+    user = get_user(user_id, message.from_user.username)
+    
+    if user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!")
+        return
+    
+    user['money'] -= bet
+    
+    # Результат рулетки (число от 0 до 36)
+    result_num = random.randint(0, 36)
+    result_color = 'green' if result_num == 0 else ('red' if result_num % 2 == 1 else 'black')
+    
+    # Проверка выигрыша
+    win = 0
+    if bet_type == 'red' and result_color == 'red':
+        win = bet * 2
+    elif bet_type == 'black' and result_color == 'black':
+        win = bet * 2
+    elif bet_type == 'green' and result_num == 0:
+        win = bet * 35
+    elif bet_type == 'even' and result_num > 0 and result_num % 2 == 0:
+        win = bet * 2
+    elif bet_type == 'odd' and result_num > 0 and result_num % 2 == 1:
+        win = bet * 2
+    
+    # Цвет для отображения
+    color_emoji = '🟢' if result_color == 'green' else ('🔴' if result_color == 'red' else '⚫')
+    bet_names = {'red': 'КРАСНОЕ', 'black': 'ЧЕРНОЕ', 'green': 'ЗЕЛЕНЫЙ (0)', 'even': 'ЧЕТ', 'odd': 'НЕЧЕТ'}
+    
+    if win > 0:
+        user['money'] += win
+        user['total_earned'] += win
+        add_exp(user_id, win // 4)
+        msg = f"🎡 РУЛЕТКА 🎡\n\n"
+        msg += f"Выпало: {color_emoji} {result_num}\n"
+        msg += f"Твоя ставка: {bet_names[bet_type]}\n"
+        msg += f"💰 ВЫИГРЫШ: +{win} шекелей!\n"
+        msg += f"💵 Баланс: {user['money']}"
+    else:
+        msg = f"🎡 РУЛЕТКА 🎡\n\n"
+        msg += f"Выпало: {color_emoji} {result_num}\n"
+        msg += f"Твоя ставка: {bet_names[bet_type]}\n"
+        msg += f"💔 ПРОИГРЫШ: -{bet} шекелей\n"
+        msg += f"💵 Баланс: {user['money']}"
+    
+    save_users(users)
+    bot.send_message(message.chat.id, msg)
+    del active_menus[user_id]
 
 # ===== СЛОТЫ =====
 
@@ -562,8 +655,9 @@ def bj_stand(call):
 
 print("=" * 40)
 print("🤖 ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
-print("✅ Профили создаются автоматически при любом сообщении")
-print("📝 Текстовые команды: работа, баланс, профиль, топ, бонус, слоты, блекджек")
+print("✅ Ежедневный бонус: КД 12 часов")
+print("✅ Рулетка: красное/черное/зеленый/чет/нечет")
+print("🎮 Команды: работа, бонус, рулетка, слоты, блекджек, баланс, профиль, топ")
 print("=" * 40)
 
 bot.infinity_polling()
