@@ -52,15 +52,32 @@ def save_all():
 
 # ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ==========
 DEFAULT_USER = {
-    'money': 500, 'level': 1, 'exp': 0, 'total_exp': 0, 'last_work': None,
-    'username': None, 'total_earned': 0, 'last_daily': None, 'daily_streak': 0,
-    'promos': [], 'work_count': 0, 'slot_wins': 0, 'roulette_wins': 0,
-    'bet_wins': 0, 'achievements': [], 'shop_buffs': {},
-    'daily_quests': None, 'last_quest_reset': None, 'lotto_ticket': None,
-    'lotto_wins': 0, 'bank_deposit': 0, 'bank_time': None
+    'money': 500,
+    'level': 1,
+    'exp': 0,
+    'total_exp': 0,
+    'last_work': None,
+    'username': None,
+    'total_earned': 0,
+    'last_daily': None,
+    'daily_streak': 0,
+    'promos': [],
+    'work_count': 0,
+    'slot_wins': 0,
+    'roulette_wins': 0,
+    'bet_wins': 0,
+    'achievements': [],
+    'shop_buffs': {},
+    'daily_quests': None,
+    'last_quest_reset': None,
+    'lotto_ticket': None,
+    'lotto_wins': 0,
+    'bank': 0,           # деньги в банке
+    'bank_deposit': 0,   # деньги на депозите
+    'bank_time': None
 }
 
-# ========== ПРОФЕССИИ (12 УРОВНЕЙ) ==========
+# ========== ПРОФЕССИИ ==========
 LEVELS = {
     1: {"name": "🫣 Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
     2: {"name": "🛵 Курьер", "salary_min": 15, "salary_max": 80, "exp_needed": 100},
@@ -86,23 +103,37 @@ SHOP_ITEMS = {
 
 # ========== АЧИВКИ ==========
 ACHIEVEMENTS = {
-    'work_10': {'name': "📦 Трудоголик", 'reward': 100}, 'work_50': {'name': "🏭 Стахановец", 'reward': 500},
-    'work_100': {'name': "💪 Машина", 'reward': 1000}, 'work_500': {'name': "🤖 Терминатор", 'reward': 5000},
-    'win_slot': {'name': "🎰 Счастливчик", 'reward': 50}, 'win_roulette': {'name': "🎡 Фортуна", 'reward': 50},
-    'win_bet': {'name': "🏇 Лучший каппер", 'reward': 100}, 'money_1000': {'name': "💰 Тысячник", 'reward': 200},
-    'money_5000': {'name': "💎 Богач", 'reward': 700}, 'money_10000': {'name': "👑 Магнат", 'reward': 1500},
-    'money_50000': {'name': "🏦 Крез", 'reward': 5000}, 'level_5': {'name': "📈 Профи", 'reward': 300},
-    'level_8': {'name': "⭐ Эксперт", 'reward': 700}, 'level_10': {'name': "🏆 Мастер", 'reward': 1200},
-    'level_12': {'name': "👑 Легенда", 'reward': 2000}, 'daily_streak': {'name': "🔥 Серийный", 'reward': 500},
-    'daily_streak_30': {'name': "💪 Железный", 'reward': 3000}, 'lotto_win': {'name': "🍀 Везунчик", 'reward': 500},
-    'lotto_win_3': {'name': "👑 Король лотереи", 'reward': 2000}, 'bank_first': {'name': "🏦 Инвестор", 'reward': 200},
+    'work_10': {'name': "📦 Трудоголик", 'reward': 100},
+    'work_50': {'name': "🏭 Стахановец", 'reward': 500},
+    'work_100': {'name': "💪 Машина", 'reward': 1000},
+    'work_500': {'name': "🤖 Терминатор", 'reward': 5000},
+    'win_slot': {'name': "🎰 Счастливчик", 'reward': 50},
+    'win_roulette': {'name': "🎡 Фортуна", 'reward': 50},
+    'win_bet': {'name': "🏇 Лучший каппер", 'reward': 100},
+    'money_1000': {'name': "💰 Тысячник", 'reward': 200},
+    'money_5000': {'name': "💎 Богач", 'reward': 700},
+    'money_10000': {'name': "👑 Магнат", 'reward': 1500},
+    'money_50000': {'name': "🏦 Крез", 'reward': 5000},
+    'level_5': {'name': "📈 Профи", 'reward': 300},
+    'level_8': {'name': "⭐ Эксперт", 'reward': 700},
+    'level_10': {'name': "🏆 Мастер", 'reward': 1200},
+    'level_12': {'name': "👑 Легенда", 'reward': 2000},
+    'daily_streak': {'name': "🔥 Серийный", 'reward': 500},
+    'daily_streak_30': {'name': "💪 Железный", 'reward': 3000},
+    'lotto_win': {'name': "🍀 Везунчик", 'reward': 500},
+    'lotto_win_3': {'name': "👑 Король лотереи", 'reward': 2000},
+    'bank_1000': {'name': "🏦 Вкладчик", 'reward': 200},
+    'bank_5000': {'name': "🏦 Инвестор", 'reward': 700},
 }
 
 # ========== ПРОМОКОДЫ ==========
 PROMOCODES = {
-    'шепельпрезидент': {'money': 2000, 'exp': 200}, 'тест': {'money': 2, 'exp': 0},
-    'куниза200шекелей': {'money': 199, 'exp': 0}, 'ялюблюгрибы': {'money': 666, 'exp': 0},
-    'яустал': {'money': 228, 'exp': 0}, 'квестыилотерея': {'money': 100, 'exp': 50},
+    'шепельпрезидент': {'money': 2000, 'exp': 200},
+    'тест': {'money': 2, 'exp': 0},
+    'куниза200шекелей': {'money': 199, 'exp': 0},
+    'ялюблюгрибы': {'money': 666, 'exp': 0},
+    'яустал': {'money': 228, 'exp': 0},
+    'квестыилотерея': {'money': 100, 'exp': 50},
 }
 
 # ========== СЛОТЫ ==========
@@ -158,10 +189,10 @@ FAIL_MESSAGES = {
 slot_waiting = {}
 roulette_waiting = {}
 bank_waiting = {}
+bank_deposit_waiting = {}
 horse_race_active = False
 horse_race_bets = {}
 horse_race_events = []
-horse_race_thread_running = False
 
 # ========== ФУНКЦИИ ==========
 def get_user(user_id, username=None):
@@ -216,7 +247,8 @@ def check_achievements(uid):
     if user.get('daily_streak', 0) >= 30 and 'daily_streak_30' not in user['achievements']: new.append('daily_streak_30')
     if user.get('lotto_wins', 0) >= 1 and 'lotto_win' not in user['achievements']: new.append('lotto_win')
     if user.get('lotto_wins', 0) >= 3 and 'lotto_win_3' not in user['achievements']: new.append('lotto_win_3')
-    if user.get('bank_deposit', 0) > 0 and 'bank_first' not in user['achievements']: new.append('bank_first')
+    if user.get('bank', 0) >= 1000 and 'bank_1000' not in user['achievements']: new.append('bank_1000')
+    if user.get('bank', 0) >= 5000 and 'bank_5000' not in user['achievements']: new.append('bank_5000')
     msg = ""
     for ach in new:
         user['achievements'].append(ach)
@@ -257,17 +289,18 @@ def update_quest(uid, qtype, amount=1):
         save_all()
     return msg
 
-# ========== КРАСИВЫЙ ПРОФИЛЬ ==========
+# ========== ОСНОВНЫЕ КОМАНДЫ ==========
 @bot.message_handler(commands=['start'])
-def start_cmd(message):
-    uid = message.from_user.id
-    user = get_user(uid, message.from_user.username)
+def start_cmd(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
     reset_daily_quests(uid)
-    bot.send_message(message.chat.id,
+    bot.send_message(m.chat.id,
         f"🎮 *ХИТРЫЙ ЕВРЕЙ* 🎮\n\n"
-        f"👋 Привет, @{message.from_user.username}!\n"
-        f"💰 Баланс: *{user['money']}*\n"
-        f"📊 Уровень: *{user['level']}* — {LEVELS[user['level']]['name']}\n\n"
+        f"👋 Привет, @{m.from_user.username}!\n"
+        f"💰 Баланс: *{u['money']}*\n"
+        f"🏦 В банке: *{u.get('bank', 0)}*\n"
+        f"📊 Уровень: *{u['level']}* — {LEVELS[u['level']]['name']}\n\n"
         f"📝 Напиши *команды* для списка!",
         parse_mode='Markdown')
 
@@ -275,7 +308,7 @@ def start_cmd(message):
 def show_commands(m):
     msg = f"📋 *СПИСОК КОМАНД* 📋\n\n"
     msg += f"┌─ 🎮 *ИГРЫ*\n│  ├ 🎰 слоты - слоты с анимацией\n│  ├ 🎡 рулетка - рулетка\n│  ├ 🐎 скачки - ставки на лошадей\n│  └ 🎫 лотерея - купить билет (18-19 МСК)\n\n"
-    msg += f"├─ 💰 *ЭКОНОМИКА*\n│  ├ 🌾 работа - работа (КД 10 мин)\n│  ├ 🎁 бонус - ежедневный (КД 12 ч)\n│  ├ 🏦 депозит - вложить деньги под 4%\n│  └ 💸 забрать - снять депозит\n\n"
+    msg += f"├─ 💰 *ЭКОНОМИКА*\n│  ├ 🌾 работа - работа (КД 10 мин)\n│  ├ 🎁 бонус - ежедневный (КД 12 ч)\n│  ├ 🏦 банк - посмотреть статистику банка\n│  ├ 💵 положить [сумма] - положить в банк\n│  ├ 💸 снять [сумма] - снять из банка\n│  ├ 📈 депозит [сумма] - вложить под 4% на 5ч\n│  └ 🏧 забрать - снять депозит\n\n"
     msg += f"├─ 🛒 *МАГАЗИН*\n│  ├ 🏪 магазин - список товаров\n│  └ 🔢 купить 1-4 - покупка\n\n"
     msg += f"└─ 📊 *ИНФО*\n    ├ 💰 баланс - проверить деньги\n    ├ 📊 профиль - полная статистика\n    ├ 🏆 топ - топ богатых\n    └ 🏅 достижения - список ачивок"
     bot.send_message(m.chat.id, msg, parse_mode='Markdown')
@@ -283,21 +316,7 @@ def show_commands(m):
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['баланс', 'деньги'])
 def balance_cmd(m):
     u = get_user(m.from_user.id, m.from_user.username)
-    bot.send_message(m.chat.id, f"💰 *БАЛАНС* 💰\n\n💵 {u['money']} шекелей\n⭐ Опыт: {u['exp']}", parse_mode='Markdown')
-
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
-def top_cmd(m):
-    top = get_top()
-    if not top:
-        bot.send_message(m.chat.id, "🏆 Топ пока пуст!")
-        return
-    msg = "🏆 *ТОП БОГАТЫХ* 🏆\n\n"
-    for i, (name, money) in enumerate(top, 1):
-        if i == 1: msg += f"👑 *{i}. @{name}* — {money}💰\n"
-        elif i == 2: msg += f"🥈 *{i}. @{name}* — {money}💰\n"
-        elif i == 3: msg += f"🥉 *{i}. @{name}* — {money}💰\n"
-        else: msg += f"{i}. @{name} — {money}💰\n"
-    bot.send_message(m.chat.id, msg, parse_mode='Markdown')
+    bot.send_message(m.chat.id, f"💰 *БАЛАНС* 💰\n\n💵 На руках: *{u['money']}* шекелей\n🏦 В банке: *{u.get('bank', 0)}* шекелей", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['профиль', 'стата'])
 def profile_cmd(m):
@@ -325,31 +344,46 @@ def profile_cmd(m):
         elif key == 'no_fail' and buff.get('uses', 0) > 0:
             buffs += f"\n🛡️ Защита от неудач (осталось {buff['uses']})"
     
-    bank_info = ""
+    deposit_info = ""
     if u.get('bank_deposit', 0) > 0 and u.get('bank_time'):
         end = datetime.fromisoformat(u['bank_time'])
         left = (end - datetime.now()).total_seconds()
         if left > 0:
             h = int(left // 3600)
             mm = int((left % 3600) // 60)
-            bank_info = f"\n🏦 Депозит: {u['bank_deposit']}💰 (готов через {h}ч {mm}мин)"
+            deposit_info = f"\n📈 Депозит: {u['bank_deposit']}💰 (готов через {h}ч {mm}мин)"
         else:
-            bank_info = f"\n🏦 Депозит: {u['bank_deposit']}💰 (готов к забору!)"
+            deposit_info = f"\n📈 Депозит: {u['bank_deposit']}💰 (готов к забору!)"
     
     msg = f"📊 *ПРОФИЛЬ* 📊\n\n"
     msg += f"👤 @{u.get('username') or 'Игрок'}\n"
     msg += f"🏆 Уровень {u['level']} — {lvl['name']}\n"
-    msg += f"💰 Денег: *{u['money']}*\n"
+    msg += f"💰 На руках: *{u['money']}*\n"
+    msg += f"🏦 В банке: *{u.get('bank', 0)}*\n"
     msg += f"⭐ Опыт: {u['exp']}\n"
     msg += f"📈 Всего заработал: {u['total_earned']}\n"
     msg += f"🎁 Серия бонусов: {u.get('daily_streak', 0)}\n"
     msg += f"📦 Работ: {u.get('work_count', 0)}\n"
     msg += f"🏆 Достижений: {len(u.get('achievements', []))}\n"
     msg += f"🎫 Билет лотереи: {u.get('lotto_ticket', 'Нет')}\n"
-    if bank_info: msg += bank_info
+    if deposit_info: msg += deposit_info
     if buffs: msg += f"\n✨ *БАФФЫ*{buffs}"
     msg += f"\n\n📊 *Прогресс* до {next_lvl} уровня:\n`{bar}` *{prog}%*"
     msg += f"\n\n🎲 *ЛОТЕРЕЯ* | ⏰ Розыгрыш в 19:00 МСК"
+    bot.send_message(m.chat.id, msg, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
+def top_cmd(m):
+    top = get_top()
+    if not top:
+        bot.send_message(m.chat.id, "🏆 Топ пока пуст!")
+        return
+    msg = "🏆 *ТОП БОГАТЫХ* 🏆\n\n"
+    for i, (name, money) in enumerate(top, 1):
+        if i == 1: msg += f"👑 *{i}. @{name}* — {money}💰\n"
+        elif i == 2: msg += f"🥈 *{i}. @{name}* — {money}💰\n"
+        elif i == 3: msg += f"🥉 *{i}. @{name}* — {money}💰\n"
+        else: msg += f"{i}. @{name} — {money}💰\n"
     bot.send_message(m.chat.id, msg, parse_mode='Markdown')
 
 # ========== РАБОТА ==========
@@ -482,6 +516,142 @@ def secret_achievement(m):
     save_all()
     bot.send_message(m.chat.id, f"🔓 *СЕКРЕТНАЯ АЧИВКА!*\n\n🏆 ШЕПЕЛЬФЕСТ\n💰 +5555💰\n⭐ +555⭐\n💵 Баланс: {u['money']}", parse_mode='Markdown')
 
+# ========== БАНК (НАКОПИТЕЛЬНЫЙ) ==========
+@bot.message_handler(func=lambda m: m.text and m.text.lower() == 'банк')
+def bank_stats_cmd(m):
+    u = get_user(m.from_user.id, m.from_user.username)
+    msg = f"🏦 *БАНКОВСКАЯ СТАТИСТИКА* 🏦\n\n"
+    msg += f"💰 Твой баланс в банке: *{u.get('bank', 0)}* шекелей\n"
+    msg += f"💸 Депозит: *{u.get('bank_deposit', 0)}* шекелей"
+    if u.get('bank_time'):
+        end = datetime.fromisoformat(u['bank_time'])
+        left = (end - datetime.now()).total_seconds()
+        if left > 0:
+            h = int(left // 3600)
+            mm = int((left % 3600) // 60)
+            msg += f"\n⏰ Готов через {h}ч {mm}мин"
+        else:
+            msg += f"\n✅ ГОТОВ К ЗАБОРУ!"
+    msg += f"\n\n📝 *ДОСТУПНЫЕ КОМАНДЫ:*\n"
+    msg += f"• положить [сумма] - положить деньги в банк\n"
+    msg += f"• снять [сумма] - снять деньги из банка\n"
+    msg += f"• депозит [сумма] - вложить под 4% на 5 часов\n"
+    msg += f"• забрать - снять депозит"
+    bot.send_message(m.chat.id, msg, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('положить'))
+def bank_deposit_cmd(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
+    parts = m.text.split()
+    if len(parts) < 2:
+        bot.send_message(m.chat.id, "❌ Укажи сумму! Пример: положить 500")
+        return
+    try:
+        amount = int(parts[1])
+        if amount <= 0:
+            bot.send_message(m.chat.id, "❌ Сумма должна быть положительной!")
+            return
+    except:
+        bot.send_message(m.chat.id, "❌ Введи число!")
+        return
+    
+    if u['money'] < amount:
+        bot.send_message(m.chat.id, f"❌ Не хватает {amount}💰 на руках!")
+        return
+    
+    u['money'] -= amount
+    u['bank'] = u.get('bank', 0) + amount
+    save_all()
+    check_achievements(uid)
+    bot.send_message(m.chat.id, f"✅ *ПОЛОЖЕНО В БАНК*\n\n💰 Сумма: {amount}💰\n🏦 В банке теперь: {u['bank']}💰\n💵 На руках: {u['money']}💰", parse_mode='Markdown')
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('снять'))
+def bank_withdraw_cmd(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
+    parts = m.text.split()
+    if len(parts) < 2:
+        bot.send_message(m.chat.id, "❌ Укажи сумму! Пример: снять 500")
+        return
+    try:
+        amount = int(parts[1])
+        if amount <= 0:
+            bot.send_message(m.chat.id, "❌ Сумма должна быть положительной!")
+            return
+    except:
+        bot.send_message(m.chat.id, "❌ Введи число!")
+        return
+    
+    if u.get('bank', 0) < amount:
+        bot.send_message(m.chat.id, f"❌ В банке только {u.get('bank', 0)}💰!")
+        return
+    
+    u['bank'] = u.get('bank', 0) - amount
+    u['money'] += amount
+    save_all()
+    bot.send_message(m.chat.id, f"✅ *СНЯТО ИЗ БАНКА*\n\n💰 Сумма: {amount}💰\n🏦 В банке осталось: {u['bank']}💰\n💵 На руках: {u['money']}💰", parse_mode='Markdown')
+
+# ========== ДЕПОЗИТ ПОД ПРОЦЕНТЫ ==========
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('депозит'))
+def deposit_cmd(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
+    parts = m.text.split()
+    if len(parts) < 2:
+        bot.send_message(m.chat.id, "❌ Укажи сумму! Пример: депозит 1000")
+        return
+    try:
+        amount = int(parts[1])
+        if amount < 100:
+            bot.send_message(m.chat.id, "❌ Минимальный депозит 100💰")
+            return
+    except:
+        bot.send_message(m.chat.id, "❌ Введи число!")
+        return
+    
+    if u.get('bank', 0) < amount:
+        bot.send_message(m.chat.id, f"❌ В банке только {u.get('bank', 0)}💰!")
+        return
+    
+    if u.get('bank_deposit', 0) > 0:
+        bot.send_message(m.chat.id, "❌ У тебя уже есть активный депозит! Сначала забери его.")
+        return
+    
+    u['bank'] = u.get('bank', 0) - amount
+    u['bank_deposit'] = amount
+    u['bank_time'] = (datetime.now() + timedelta(hours=5)).isoformat()
+    save_all()
+    check_achievements(uid)
+    bot.send_message(m.chat.id, f"📈 *ДЕПОЗИТ ОТКРЫТ!* 📈\n\n💰 Сумма: {amount}💰\n📊 Процент: 4% за 5 часов\n🏦 Через 5 часов ты получишь *{int(amount * 1.04)}*💰", parse_mode='Markdown')
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['забрать', 'забрать депозит'])
+def withdraw_deposit_cmd(m):
+    uid = m.from_user.id
+    u = get_user(uid, m.from_user.username)
+    if not u.get('bank_deposit', 0):
+        bot.send_message(m.chat.id, "❌ У тебя нет активного депозита!")
+        return
+    if not u.get('bank_time'):
+        bot.send_message(m.chat.id, "❌ Ошибка!")
+        return
+    
+    end = datetime.fromisoformat(u['bank_time'])
+    if datetime.now() < end:
+        left = (end - datetime.now()).total_seconds()
+        h = int(left // 3600)
+        mm = int((left % 3600) // 60)
+        bot.send_message(m.chat.id, f"⏰ Депозит будет доступен через {h}ч {mm}мин")
+        return
+    
+    amount = u['bank_deposit']
+    win = int(amount * 1.04)
+    u['bank'] = u.get('bank', 0) + win
+    u['bank_deposit'] = 0
+    u['bank_time'] = None
+    save_all()
+    bot.send_message(m.chat.id, f"🏦 *ДЕПОЗИТ ЗАБРАН!* 🏦\n\n💰 Ты вложил: {amount}💰\n📈 Получил: *{win}*💰\n💵 На руках: {u['money']}💰\n🏦 В банке: {u['bank']}💰", parse_mode='Markdown')
+
 # ========== МАГАЗИН ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower() == 'магазин')
 def shop_cmd(m):
@@ -525,65 +695,6 @@ def buy_cmd(m):
         u['shop_buffs'][item['effect']] = {'active_until': now + item['duration']}
     save_all()
     bot.send_message(m.chat.id, f"✅ {item['name']} куплен!\n💵 Баланс: {u['money']}", parse_mode='Markdown')
-
-# ========== БАНК ==========
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['депозит', 'вложить'])
-def deposit_cmd(m):
-    bot.send_message(m.chat.id, "🏦 *ДЕПОЗИТ* 🏦\n\n💰 Процент: *4%* за 5 часов\n📝 Введи сумму (мин 100):", parse_mode='Markdown')
-    bank_waiting[m.from_user.id] = 'waiting'
-
-@bot.message_handler(func=lambda m: m.from_user.id in bank_waiting)
-def deposit_amount(m):
-    uid = m.from_user.id
-    del bank_waiting[uid]
-    try:
-        amount = int(m.text.strip())
-        if amount < 100:
-            bot.send_message(m.chat.id, "❌ Минимум 100💰")
-            return
-    except:
-        bot.send_message(m.chat.id, "❌ Введи число!")
-        return
-    
-    u = get_user(uid, m.from_user.username)
-    if u['money'] < amount:
-        bot.send_message(m.chat.id, f"❌ Не хватает {amount}💰")
-        return
-    
-    u['money'] -= amount
-    u['bank_deposit'] = amount
-    u['bank_time'] = (datetime.now() + timedelta(hours=5)).isoformat()
-    save_all()
-    check_achievements(uid)
-    bot.send_message(m.chat.id, f"✅ *ДЕПОЗИТ ОТКРЫТ!*\n\n💰 Сумма: {amount}💰\n📈 Через 5 часов ты получишь *{int(amount * 1.04)}*💰\n💵 Баланс: {u['money']}", parse_mode='Markdown')
-
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['забрать', 'депозит снять'])
-def withdraw_cmd(m):
-    uid = m.from_user.id
-    u = get_user(uid, m.from_user.username)
-    if not u.get('bank_deposit', 0):
-        bot.send_message(m.chat.id, "❌ У тебя нет активного депозита!")
-        return
-    if not u.get('bank_time'):
-        bot.send_message(m.chat.id, "❌ Ошибка: нет времени депозита")
-        return
-    
-    end = datetime.fromisoformat(u['bank_time'])
-    if datetime.now() < end:
-        left = (end - datetime.now()).total_seconds()
-        h = int(left // 3600)
-        mm = int((left % 3600) // 60)
-        bot.send_message(m.chat.id, f"⏰ Депозит будет доступен через {h}ч {mm}мин")
-        return
-    
-    amount = u['bank_deposit']
-    win = int(amount * 1.04)
-    u['money'] += win
-    u['total_earned'] += win
-    u['bank_deposit'] = 0
-    u['bank_time'] = None
-    save_all()
-    bot.send_message(m.chat.id, f"🏦 *ДЕПОЗИТ ЗАБРАН!*\n\n💰 Ты вложил: {amount}💰\n📈 Получил: *{win}*💰\n💵 Баланс: {u['money']}", parse_mode='Markdown')
 
 # ========== ЛОТЕРЕЯ ==========
 def lotto_timer():
@@ -645,7 +756,7 @@ def lotto_buy(m):
     save_all()
     bot.send_message(m.chat.id, f"🎫 *БИЛЕТ КУПЛЕН!*\n\n✅ Твой номер: *{ticket}*\n🎲 Розыгрыш сегодня в 19:00 МСК", parse_mode='Markdown')
 
-# ========== СЛОТЫ С АНИМАЦИЕЙ ==========
+# ========== СЛОТЫ ==========
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['слоты', 'слот'])
 def slots_start(m):
     slot_waiting[m.from_user.id] = 'bet'
@@ -674,14 +785,12 @@ def slots_play(m):
     
     anim_msg = bot.send_message(m.chat.id, "🎰 *СЛОТЫ* 🎰\n\n🌀 | 🌀 | 🌀\n🌀 | 🌀 | 🌀\n🌀 | 🌀 | 🌀\n\n*КРУТИМ...*", parse_mode='Markdown')
     
-    # 6 секунд анимации, обновление каждую секунду
     for step in range(6):
         time.sleep(1)
         temp_grid = [[random.choice(SLOT_SYMBOLS) for _ in range(3)] for _ in range(3)]
         display = f"┌───┬───┬───┐\n│ {temp_grid[0][0]} │ {temp_grid[0][1]} │ {temp_grid[0][2]} │\n├───┼───┼───┤\n│ {temp_grid[1][0]} │ {temp_grid[1][1]} │ {temp_grid[1][2]} │\n├───┼───┼───┤\n│ {temp_grid[2][0]} │ {temp_grid[2][1]} │ {temp_grid[2][2]} │\n└───┴───┴───┘"
         bot.edit_message_text(f"🎰 *СЛОТЫ* 🎰\n\n{display}\n\n*КРУТИМ...*", m.chat.id, anim_msg.message_id, parse_mode='Markdown')
     
-    # Финальный результат
     grid = [[random.choice(SLOT_SYMBOLS) for _ in range(3)] for _ in range(3)]
     win = 0
     for line in SLOT_LINES:
@@ -782,8 +891,7 @@ def roulette_amount(m):
 
 # ========== СКАЧКИ ==========
 def horse_race_event_loop(chat_id):
-    global horse_race_events, horse_race_active, horse_race_thread_running
-    horse_race_thread_running = True
+    global horse_race_events, horse_race_active
     last = time.time()
     while horse_race_active:
         if time.time() - last >= 15 and random.randint(1,100) <= 40:
@@ -794,7 +902,6 @@ def horse_race_event_loop(chat_id):
             except: pass
             last = time.time()
         time.sleep(1)
-    horse_race_thread_running = False
 
 def start_horse_race(chat_id):
     time.sleep(60)
@@ -886,9 +993,8 @@ def horse_bet(m):
 # ========== ЗАПУСК ==========
 print("=" * 50)
 print("🔥 ХИТРЫЙ ЕВРЕЙ — ФИНАЛЬНАЯ ВЕРСИЯ 🔥")
+print("🏦 БАНК — положить/снять/депозит 4%")
 print("🎰 СЛОТЫ — АНИМАЦИЯ 6 СЕКУНД")
-print("💰 БАНК — 4% за 5 часов")
-print("🛒 МАГАЗИН — КУПИТЬ 1-4")
 print("🎡 РУЛЕТКА — КРАСНОЕ/ЧЕРНОЕ/ЗЕЛЕНЫЙ/ЧЕТ/НЕЧЕТ")
 print("🐎 СКАЧКИ — 6 ЛОШАДЕЙ, СОБЫТИЯ")
 print("🎫 ЛОТЕРЕЯ — 18:00-19:00 МСК")
@@ -896,4 +1002,3 @@ print("🏆 АЧИВКИ — 20+ ШТУК")
 print("=" * 50)
 
 bot.infinity_polling()
-
