@@ -11,7 +11,7 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = 'users.json'
 data = {}
 roulette_waiting = {}
-slot_games = {}
+slot_waiting = {}
 bj_games = {}
 duels = {}
 
@@ -34,46 +34,14 @@ PROMOCODES = {
 }
 
 FAIL_MESSAGES = {
-    "Грузчик": [
-        "💥 Уронил ящик с помидорами! Штраф {} шекелей!",
-        "📦 Споткнулся и разбил дорогую вазу! -{} шекелей!",
-        "🔨 Неправильно закрепил груз - штраф {} шекелей!"
-    ],
-    "Курьер": [
-        "🛵 Проткнул колесо о гвоздь! Штраф {} шекелей!",
-        "📬 Потерял посылку по пути! -{} шекелей!",
-        "💨 Опоздал к клиенту на 5 минут! Штраф {} шекелей!"
-    ],
-    "Автомеханик": [
-        "🔧 Перетянул болт и сорвал резьбу! Штраф {} шекелей!",
-        "⚡ Забыл затянуть колесо - вылетело на дороге! -{} шекелей!",
-        "🛢 Залил не то масло в двигатель! Штраф {} шекелей!"
-    ],
-    "Кладовщик": [
-        "📦 Перепутал товар при отгрузке! Штраф {} шекелей!",
-        "🏷 Потерял накладную на товар! -{} шекелей!",
-        "💻 Неправильно внес данные в систему! Штраф {} шекелей!"
-    ],
-    "Менеджер": [
-        "📞 Поссорился с важным клиентом! Штраф {} шекелей!",
-        "💼 Провалил презентацию проекта! -{} шекелей!",
-        "📉 Неправильно рассчитал бюджет! Штраф {} шекелей!"
-    ],
-    "Бухгалтер": [
-        "📊 Ошибся в годовой отчетности! Штраф {} шекелей!",
-        "🧾 Потерял важные чеки для налоговой! -{} шекелей!",
-        "💰 Неправильно начислил зарплаты сотрудникам! Штраф {} шекелей!"
-    ],
-    "Директор": [
-        "🏢 Неудачная сделка с партнерами! Штраф {} шекелей!",
-        "📉 Акции компании упали в цене! -{} шекелей!",
-        "🤝 Подписал невыгодный контракт! Штраф {} шекелей!"
-    ],
-    "Магнат": [
-        "💎 Инвестиция в криптовалюту провалилась! Штраф {} шекелей!",
-        "🏭 Завод встал на простой из-за поломки! -{} шекелей!",
-        "📈 Фондовый рынок обвалился! Штраф {} шекелей!"
-    ]
+    "Грузчик": ["💥 Уронил ящик! Штраф {} шекелей!", "📦 Разбил вазу! -{} шекелей!"],
+    "Курьер": ["🛵 Проткнул колесо! Штраф {} шекелей!", "📬 Потерял посылку! -{} шекелей!"],
+    "Автомеханик": ["🔧 Сорвал резьбу! Штраф {} шекелей!", "⚡ Забыл затянуть колесо! -{} шекелей!"],
+    "Кладовщик": ["📦 Перепутал товар! Штраф {} шекелей!", "🏷 Потерял накладную! -{} шекелей!"],
+    "Менеджер": ["📞 Поссорился с клиентом! Штраф {} шекелей!", "💼 Провалил презентацию! -{} шекелей!"],
+    "Бухгалтер": ["📊 Ошибся в отчетности! Штраф {} шекелей!", "🧾 Потерял чеки! -{} шекелей!"],
+    "Директор": ["🏢 Неудачная сделка! Штраф {} шекелей!", "📉 Акции упали! -{} шекелей!"],
+    "Магнат": ["💎 Крипта провалилась! Штраф {} шекелей!", "🏭 Завод встал! -{} шекелей!"]
 }
 
 def load_data():
@@ -92,16 +60,9 @@ def get_user(user_id, username=None):
     uid = str(user_id)
     if uid not in data:
         data[uid] = {
-            'money': 500,
-            'level': 1,
-            'exp': 0,
-            'total_exp': 0,
-            'last_work': None,
-            'username': username,
-            'total_earned': 0,
-            'last_daily': None,
-            'daily_streak': 0,
-            'promos': []
+            'money': 500, 'level': 1, 'exp': 0, 'total_exp': 0,
+            'last_work': None, 'username': username, 'total_earned': 0,
+            'last_daily': None, 'daily_streak': 0, 'promos': []
         }
         save_data()
     else:
@@ -126,14 +87,226 @@ def get_level_info(level):
     return LEVELS.get(level, LEVELS[1])
 
 def get_top():
-    top_list = []
-    for uid, u in data.items():
-        name = u.get('username', 'Игрок')
-        top_list.append((name, u['money']))
+    top_list = [(u.get('username', 'Игрок'), u['money']) for u in data.values()]
     top_list.sort(key=lambda x: x[1], reverse=True)
     return top_list[:10]
 
-# ========== КОМАНДЫ ==========
+# ========== СЛОТЫ С АНИМАЦИЕЙ ==========
+
+SLOT_SYMBOLS = ['🍒', '🍊', '🍋', '🍉', '🍇', '💰', '💎', '🎰', '7️⃣']
+SLOT_PAYOUTS = {
+    ('7️⃣', '7️⃣', '7️⃣'): 50,
+    ('🎰', '🎰', '🎰'): 40,
+    ('💎', '💎', '💎'): 30,
+    ('💰', '💰', '💰'): 25,
+    ('🍇', '🍇', '🍇'): 20,
+    ('🍉', '🍉', '🍉'): 15,
+    ('🍒', '🍒', '🍒'): 10,
+    ('🍊', '🍊', '🍊'): 10,
+    ('🍋', '🍋', '🍋'): 10,
+    ('🍒', '🍒', '🍊'): 5,
+    ('🍊', '🍊', '🍒'): 5,
+    ('🍒', '🍊', '🍋'): 3,
+}
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['слоты', 'слот', 'казик'])
+def slots_start(message):
+    uid = message.from_user.id
+    slot_waiting[uid] = 'waiting_bet'
+    bot.send_message(message.chat.id, "🎰 Введи сумму ставки (минимум 10):")
+
+@bot.message_handler(func=lambda m: m.from_user.id in slot_waiting and slot_waiting[m.from_user.id] == 'waiting_bet')
+def slots_get_bet(message):
+    uid = message.from_user.id
+    try:
+        bet = int(message.text.strip())
+        if bet < 10:
+            bot.send_message(message.chat.id, "❌ Минимум 10 шекелей!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        return
+    
+    user = get_user(uid, message.from_user.username)
+    if user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ Не хватает {bet} шекелей!")
+        del slot_waiting[uid]
+        return
+    
+    user['money'] -= bet
+    save_data()
+    
+    slot_waiting[uid] = {'bet': bet, 'step': 0}
+    
+    # Анимация: 3 быстрых прокрутки
+    msg = bot.send_message(message.chat.id, "🎰 КРУТИМ... 🎰\n\n🌀 | 🌀 | 🌀")
+    time.sleep(0.5)
+    
+    for step in range(3):
+        spin1 = random.choice(SLOT_SYMBOLS)
+        spin2 = random.choice(SLOT_SYMBOLS)
+        spin3 = random.choice(SLOT_SYMBOLS)
+        bot.edit_message_text(f"🎰 КРУТИМ... 🎰\n\n{spin1} | {spin2} | {spin3}", message.chat.id, msg.message_id)
+        time.sleep(0.4)
+    
+    # Финальный результат
+    result = [random.choice(SLOT_SYMBOLS) for _ in range(3)]
+    win = 0
+    win_type = "💔 ПРОИГРЫШ"
+    
+    for combo, multiplier in SLOT_PAYOUTS.items():
+        if tuple(result) == combo:
+            win = bet * multiplier
+            win_type = f"✨ ПОБЕДА! x{multiplier} ✨"
+            break
+    
+    if win > 0:
+        user['money'] += win
+        user['total_earned'] += win
+        add_exp(uid, win // 4)
+        save_data()
+    
+    msg_text = f"🎰 РЕЗУЛЬТАТ 🎰\n\n"
+    msg_text += f"┌───┬───┬───┐\n"
+    msg_text += f"│ {result[0]} │ {result[1]} │ {result[2]} │\n"
+    msg_text += f"└───┴───┴───┘\n\n"
+    msg_text += f"{win_type}\n"
+    if win > 0:
+        msg_text += f"💰 +{win} шекелей!\n"
+    msg_text += f"💵 Баланс: {user['money']}"
+    
+    bot.edit_message_text(msg_text, message.chat.id, msg.message_id)
+    del slot_waiting[uid]
+
+# ========== ДУЭЛИ (ПРОСТАЯ РАБОЧАЯ) ==========
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('дуэль'))
+def duel_start(message):
+    uid = message.from_user.id
+    user = get_user(uid, message.from_user.username)
+    
+    parts = message.text.split()
+    if len(parts) < 3:
+        bot.send_message(message.chat.id, "❌ Используй: дуэль @username сумма\nПример: дуэль @vanya 100")
+        return
+    
+    target = parts[1].replace('@', '')
+    try:
+        bet = int(parts[2])
+        if bet < 10:
+            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
+            return
+    except:
+        bot.send_message(message.chat.id, "❌ Введи число!")
+        return
+    
+    if user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ У тебя только {user['money']} шекелей!")
+        return
+    
+    target_uid = None
+    for uid_check, u in data.items():
+        if u.get('username') == target:
+            target_uid = uid_check
+            break
+    
+    if not target_uid:
+        bot.send_message(message.chat.id, f"❌ Игрок @{target} не найден!")
+        return
+    
+    if str(target_uid) == str(uid):
+        bot.send_message(message.chat.id, "❌ Нельзя дуэлиться с самим собой!")
+        return
+    
+    target_user = get_user(target_uid)
+    
+    if target_user['money'] < bet:
+        bot.send_message(message.chat.id, f"❌ У @{target} не хватает {bet} шекелей!")
+        return
+    
+    duel_id = str(int(time.time()))
+    duels[duel_id] = {
+        'p1': uid, 'p2': target_uid, 'bet': bet, 'status': 'waiting', 'chat_id': message.chat.id
+    }
+    
+    user['money'] -= bet
+    target_user['money'] -= bet
+    save_data()
+    
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("✅ ПРИНЯТЬ", callback_data=f'accept_{duel_id}'),
+        telebot.types.InlineKeyboardButton("❌ ОТКАЗАТЬ", callback_data=f'decline_{duel_id}')
+    )
+    
+    bot.send_message(message.chat.id,
+        f"🥊 ДУЭЛЬ 🥊\n\n"
+        f"👤 @{message.from_user.username} vs @{target}\n"
+        f"💰 Ставка: {bet}\n\n"
+        f"У обоих списано {bet}\n"
+        f"Победитель забирает {bet*2}!",
+        reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('accept_') or call.data.startswith('decline_'))
+def duel_handler(call):
+    action = 'accept' if 'accept' in call.data else 'decline'
+    duel_id = call.data.split('_')[1]
+    duel = duels.get(duel_id)
+    
+    if not duel:
+        bot.answer_callback_query(call.id, "❌ Дуэль не найдена!", show_alert=True)
+        return
+    
+    if call.from_user.id != duel['p2']:
+        bot.answer_callback_query(call.id, "❌ Это не твоя дуэль!", show_alert=True)
+        return
+    
+    if duel['status'] != 'waiting':
+        bot.answer_callback_query(call.id, "❌ Дуэль уже завершена!", show_alert=True)
+        return
+    
+    if action == 'accept':
+        duel['status'] = 'active'
+        p1 = get_user(duel['p1'])
+        p2 = get_user(duel['p2'])
+        
+        r1 = random.randint(1, 6)
+        r2 = random.randint(1, 6)
+        
+        msg = f"🎲 РЕЗУЛЬТАТ ДУЭЛИ 🎲\n\n"
+        msg += f"🥊 @{p1['username']} vs @{p2['username']}\n"
+        msg += f"💰 Ставка: {duel['bet']}\n\n"
+        msg += f"🎲 @{p1['username']}: {r1}\n"
+        msg += f"🎲 @{p2['username']}: {r2}\n\n"
+        
+        if r1 > r2:
+            p1['money'] += duel['bet'] * 2
+            msg += f"🏆 ПОБЕДА @{p1['username']}! +{duel['bet']*2}"
+        elif r2 > r1:
+            p2['money'] += duel['bet'] * 2
+            msg += f"🏆 ПОБЕДА @{p2['username']}! +{duel['bet']*2}"
+        else:
+            p1['money'] += duel['bet']
+            p2['money'] += duel['bet']
+            msg += f"🤝 НИЧЬЯ! Деньги возвращены"
+        
+        save_data()
+        bot.edit_message_text(msg, duel['chat_id'], call.message.message_id)
+        bot.answer_callback_query(call.id, "✅ Дуэль началась!", show_alert=True)
+        
+    else:
+        p1 = get_user(duel['p1'])
+        p2 = get_user(duel['p2'])
+        p1['money'] += duel['bet']
+        p2['money'] += duel['bet']
+        save_data()
+        bot.edit_message_text(f"❌ @{p2['username']} отказался!\n💰 Деньги возвращены", 
+                              duel['chat_id'], call.message.message_id)
+        bot.answer_callback_query(call.id, "❌ Ты отказался!", show_alert=True)
+    
+    del duels[duel_id]
+
+# ========== ОСТАЛЬНЫЕ КОМАНДЫ ==========
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
@@ -145,7 +318,7 @@ def start_cmd(message):
         f"👋 Привет, @{message.from_user.username}!\n"
         f"💰 Баланс: {user['money']} шекелей\n"
         f"📊 Уровень: {user['level']} - {level_info['name']}\n\n"
-        f"📝 Напиши 'команды' чтобы увидеть все команды!\n\n"
+        f"📝 Напиши 'команды' для списка!\n\n"
         f"🎲 Удачи!")
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() == 'команды')
@@ -153,28 +326,21 @@ def show_commands(message):
     msg = f"📋 СПИСОК КОМАНД 📋\n\n"
     msg += f"--- ИГРЫ ---\n"
     msg += f"• рулетка - игра в рулетку\n"
-    msg += f"• слоты - игра в слоты 3x3\n"
+    msg += f"• слоты - слоты с анимацией\n"
     msg += f"• блекджек - игра в 21\n"
-    msg += f"• дуэль @username сумма - вызвать на дуэль\n\n"
+    msg += f"• дуэль @user сумма - дуэль\n\n"
     msg += f"--- ЗАРАБОТОК ---\n"
-    msg += f"• работа / фарм - заработать (КД 10 мин)\n"
-    msg += f"  (5% шанс на провал со штрафом)\n"
-    msg += f"• бонус / ежедневный - бонус (КД 12 ч)\n\n"
-    msg += f"--- ИНФОРМАЦИЯ ---\n"
-    msg += f"• баланс / деньги - проверить баланс\n"
-    msg += f"• профиль / стата - твоя статистика\n"
-    msg += f"• топ / лидеры - топ богатых игроков\n\n"
+    msg += f"• работа / фарм - работа (КД 10 мин)\n"
+    msg += f"• бонус - ежедневный (КД 12 ч)\n\n"
+    msg += f"--- ИНФО ---\n"
+    msg += f"• баланс - проверить деньги\n"
+    msg += f"• профиль - статистика\n"
+    msg += f"• топ - топ богатых\n\n"
     msg += f"--- ПРОМОКОДЫ ---\n"
-    msg += f"• #промо код - активировать промокод\n"
-    msg += f"Доступные промокоды:\n"
-    msg += f"  - шепельпрезидент (2000 шекелей)\n"
-    msg += f"  - тест (2 шекеля)\n"
-    msg += f"  - куниза200шекелей (199 шекелей)\n"
-    msg += f"  - ялюблюгрибы (666 шекелей)\n\n"
-    msg += f"--- ДУЭЛИ ---\n"
-    msg += f"Пример: дуэль @vovan 100\n"
-    msg += f"Победитель забирает ставку x2"
-    
+    msg += f"#промо шепельпрезидент - 2000💰\n"
+    msg += f"#промо тест - 2💰\n"
+    msg += f"#промо куниза200шекелей - 199💰\n"
+    msg += f"#промо ялюблюгрибы - 666💰"
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['работа', 'фарм', 'работка'])
@@ -193,91 +359,67 @@ def work_cmd(message):
             bot.send_message(message.chat.id, f"⏰ Отдыхай {m} мин {s} сек")
             return
     
-    base_earned = random.randint(level_info['salary_min'], level_info['salary_max'])
-    fail_chance = random.randint(1, 100)
-    failed = fail_chance <= 5
+    base = random.randint(level_info['salary_min'], level_info['salary_max'])
+    fail = random.randint(1, 100) <= 5
     
-    if failed:
-        penalty_percent = random.randint(30, 70)
-        penalty = int(base_earned * penalty_percent / 100)
+    if fail:
+        penalty = random.randint(int(base * 0.3), int(base * 0.7))
         earned = -penalty
         user['money'] += earned
         user['total_earned'] += earned
-        
-        messages = FAIL_MESSAGES.get(level_info['name'], ["Работа не заладилась! Штраф {} шекелей!"])
+        messages = FAIL_MESSAGES.get(level_info['name'], ["Ошибка! Штраф {}"])
         fail_text = random.choice(messages)
-        
-        msg = f"😫 НЕУДАЧА НА РАБОТЕ!\n\n"
-        msg += f"💼 {level_info['name']}\n"
-        msg += f"{fail_text.format(penalty)}\n"
+        msg = f"😫 НЕУДАЧА!\n\n💼 {level_info['name']}\n{fail_text.format(penalty)}\n💵 Баланс: {user['money']}"
+        exp_change = -penalty // 4
     else:
-        earned = base_earned
+        earned = base
         user['money'] += earned
         user['total_earned'] += earned
-        msg = f"🌾 ТЫ ПОРАБОТАЛ! 🌾\n\n"
-        msg += f"💼 {level_info['name']}\n"
-        msg += f"💰 +{earned} шекелей\n"
+        msg = f"🌾 ТЫ ПОРАБОТАЛ! 🌾\n\n💼 {level_info['name']}\n💰 +{earned} шекелей"
+        exp_change = earned // 2
     
     user['last_work'] = datetime.now().isoformat()
-    exp_earned = abs(earned) // 2 if earned > 0 else abs(earned) // 4
-    
-    if earned > 0:
-        leveled = add_exp(uid, exp_earned)
-        msg += f"\n⭐ +{exp_earned} опыта"
-    else:
-        leveled = add_exp(uid, -exp_earned)
-        msg += f"\n😭 -{exp_earned} опыта (штраф)"
-    
-    msg += f"\n💵 Баланс: {user['money']} шекелей"
+    leveled = add_exp(uid, exp_change)
+    msg += f"\n⭐ {exp_change:+} опыта\n💵 Баланс: {user['money']}"
     
     if leveled and earned > 0:
         new_level = get_level_info(user['level'])
-        msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! 🎉\nТеперь ты {user['level']} - {new_level['name']}"
+        msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! {user['level']} - {new_level['name']}"
     
     save_data()
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['баланс', 'деньги'])
 def balance_cmd(message):
-    uid = message.from_user.id
-    user = get_user(uid, message.from_user.username)
+    user = get_user(message.from_user.id, message.from_user.username)
     level_info = get_level_info(user['level'])
     bot.send_message(message.chat.id,
-        f"💰 ТВОЙ БАЛАНС 💰\n\n"
-        f"💵 Денег: {user['money']} шекелей\n"
-        f"📊 Уровень: {user['level']} - {level_info['name']}\n"
-        f"⭐ Опыт: {user['exp']}\n"
-        f"📈 Всего заработал: {user['total_earned']}")
+        f"💰 БАЛАНС 💰\n\n💵 {user['money']} шекелей\n📊 Уровень {user['level']} - {level_info['name']}\n⭐ Опыт: {user['exp']}\n📈 Всего: {user['total_earned']}")
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['профиль', 'стата'])
 def profile_cmd(message):
-    uid = message.from_user.id
-    user = get_user(uid, message.from_user.username)
+    user = get_user(message.from_user.id, message.from_user.username)
     level_info = get_level_info(user['level'])
     
-    next_level = user['level'] + 1
-    if next_level <= 8:
-        need = LEVELS[next_level]['exp_needed']
+    next_lvl = user['level'] + 1
+    if next_lvl <= 8:
+        need = LEVELS[next_lvl]['exp_needed']
         have = user['total_exp']
         left = need - have
         prog = int((have / need) * 100) if need > 0 else 100
-        prog_bar = '▓' * (prog // 10) + '░' * (10 - (prog // 10))
+        bar = '▓' * (prog // 10) + '░' * (10 - (prog // 10))
     else:
-        left = 0
-        prog = 100
-        prog_bar = '▓▓▓▓▓▓▓▓▓▓'
+        left, prog, bar = 0, 100, '▓▓▓▓▓▓▓▓▓▓'
     
-    msg = f"📊 ТВОЙ ПРОФИЛЬ 📊\n\n"
-    msg += f"👤 Игрок: @{user.get('username') or 'Нет имени'}\n"
-    msg += f"🏆 Уровень: {user['level']} - {level_info['name']}\n"
-    msg += f"💰 Денег: {user['money']} шекелей\n"
+    msg = f"📊 ПРОФИЛЬ 📊\n\n"
+    msg += f"👤 @{user.get('username') or 'Нет имени'}\n"
+    msg += f"🏆 Уровень {user['level']} - {level_info['name']}\n"
+    msg += f"💰 {user['money']} шекелей\n"
     msg += f"⭐ Опыт: {user['exp']}\n"
-    msg += f"📈 Всего заработал: {user['total_earned']}\n"
-    msg += f"🎁 Серия бонусов: {user.get('daily_streak', 0)} дней"
-    
+    msg += f"📈 Всего: {user['total_earned']}\n"
+    msg += f"🎁 Серия: {user.get('daily_streak', 0)}"
     if left > 0:
-        msg += f"\n\n📊 До {next_level} уровня:\n{prog_bar} {prog}%\nОсталось: {left} опыта"
-    
+        msg += f"\n\n📊 До {next_lvl} уровня:\n{bar} {prog}%\nОсталось: {left} опыта"
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['топ', 'топ10', 'лидеры'])
@@ -286,16 +428,16 @@ def top_cmd(message):
     if not top:
         bot.send_message(message.chat.id, "🏆 Топ пока пуст!")
         return
-    msg = "🏆 ТОП БОГАТЫХ ИГРОКОВ 🏆\n\n"
+    msg = "🏆 ТОП БОГАТЫХ 🏆\n\n"
     for i, (name, money) in enumerate(top, 1):
         if i == 1:
-            msg += f"👑 {i}. @{name} - {money} 💰\n"
+            msg += f"👑 {i}. @{name} - {money}\n"
         elif i == 2:
-            msg += f"🥈 {i}. @{name} - {money} 💰\n"
+            msg += f"🥈 {i}. @{name} - {money}\n"
         elif i == 3:
-            msg += f"🥉 {i}. @{name} - {money} 💰\n"
+            msg += f"🥉 {i}. @{name} - {money}\n"
         else:
-            msg += f"{i}. @{name} - {money} 💰\n"
+            msg += f"{i}. @{name} - {money}\n"
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['бонус', 'ежедневный', 'daily'])
@@ -307,9 +449,9 @@ def daily_cmd(message):
         last = datetime.fromisoformat(user['last_daily'])
         diff = (datetime.now() - last).total_seconds()
         if diff < 43200:
-            hours = int((43200 - diff) // 3600)
-            minutes = int(((43200 - diff) % 3600) // 60)
-            bot.send_message(message.chat.id, f"🎁 Бонус через {hours} ч {minutes} мин\n🔥 Серия: {user.get('daily_streak', 0)}")
+            h = int((43200 - diff) // 3600)
+            m = int(((43200 - diff) % 3600) // 60)
+            bot.send_message(message.chat.id, f"🎁 Бонус через {h}ч {m}мин\n🔥 Серия: {user.get('daily_streak', 0)}")
             return
     
     bonus = random.randint(50, 200)
@@ -317,14 +459,12 @@ def daily_cmd(message):
     user['total_earned'] += bonus
     user['last_daily'] = datetime.now().isoformat()
     user['daily_streak'] = user.get('daily_streak', 0) + 1
-    exp_gained = bonus // 3
-    leveled = add_exp(uid, exp_gained)
+    leveled = add_exp(uid, bonus // 3)
     
-    msg = f"🎁 ЕЖЕДНЕВНЫЙ БОНУС 🎁\n\n💰 +{bonus} шекелей\n⭐ +{exp_gained} опыта\n🔥 Серия: {user['daily_streak']} дней\n💵 Баланс: {user['money']}"
+    msg = f"🎁 ЕЖЕДНЕВНЫЙ БОНУС 🎁\n\n💰 +{bonus}\n⭐ +{bonus//3}\n🔥 Серия: {user['daily_streak']}\n💵 Баланс: {user['money']}"
     if leveled:
         new_level = get_level_info(user['level'])
-        msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! 🎉\nТеперь ты {user['level']} - {new_level['name']}"
-    
+        msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! {user['level']} - {new_level['name']}"
     save_data()
     bot.send_message(message.chat.id, msg)
 
@@ -332,278 +472,46 @@ def daily_cmd(message):
 def promo_cmd(message):
     uid = message.from_user.id
     user = get_user(uid, message.from_user.username)
-    promo_text = message.text.lower().replace('#промо', '').strip()
+    promo = message.text.lower().replace('#промо', '').strip()
     
-    if promo_text in user.get('promos', []):
-        bot.send_message(message.chat.id, f"❌ Ты уже использовал промокод {promo_text}!")
+    if promo in user.get('promos', []):
+        bot.send_message(message.chat.id, f"❌ Промокод {promo} уже использован!")
         return
     
-    if promo_text in PROMOCODES:
-        promo = PROMOCODES[promo_text]
-        user['money'] += promo['money']
-        user['total_earned'] += promo['money']
-        user['promos'].append(promo_text)
-        leveled = add_exp(uid, promo['exp'])
-        
-        msg = f"🎁 ПРОМОКОД АКТИВИРОВАН! 🎁\n\n✅ {promo_text}\n💰 +{promo['money']} шекелей\n⭐ +{promo['exp']} опыта\n💵 Баланс: {user['money']}"
+    if promo in PROMOCODES:
+        p = PROMOCODES[promo]
+        user['money'] += p['money']
+        user['total_earned'] += p['money']
+        user['promos'].append(promo)
+        leveled = add_exp(uid, p['exp'])
+        msg = f"🎁 ПРОМОКОД АКТИВИРОВАН!\n✅ {promo}\n💰 +{p['money']}"
+        if p['exp'] > 0:
+            msg += f"\n⭐ +{p['exp']}"
+        msg += f"\n💵 Баланс: {user['money']}"
         if leveled:
             new_level = get_level_info(user['level'])
-            msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! 🎉\nТеперь ты {user['level']} - {new_level['name']}"
-        
+            msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! {user['level']} - {new_level['name']}"
         save_data()
         bot.send_message(message.chat.id, msg)
     else:
-        bot.send_message(message.chat.id, f"❌ Промокод {promo_text} не найден!")
-
-# ========== ДУЭЛИ ==========
-
-@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith('дуэль'))
-def duel_command(message):
-    uid = message.from_user.id
-    user = get_user(uid, message.from_user.username)
-    
-    parts = message.text.split()
-    if len(parts) < 3:
-        bot.send_message(message.chat.id, "❌ Используй: дуэль @username сумма\nПример: дуэль @vanya 100")
-        return
-    
-    target = parts[1]
-    if not target.startswith('@'):
-        target = '@' + target
-    
-    try:
-        bet = int(parts[2])
-        if bet < 10:
-            bot.send_message(message.chat.id, "❌ Минимальная ставка 10 шекелей!")
-            return
-    except:
-        bot.send_message(message.chat.id, "❌ Введи число!")
-        return
-    
-    if user['money'] < bet:
-        bot.send_message(message.chat.id, f"❌ У тебя только {user['money']} шекелей!")
-        return
-    
-    target_name = target.replace('@', '')
-    target_uid = None
-    for uid_check, u in data.items():
-        if u.get('username') == target_name:
-            target_uid = uid_check
-            break
-    
-    if not target_uid:
-        bot.send_message(message.chat.id, f"❌ Игрок {target} не найден!")
-        return
-    
-    if str(target_uid) == str(uid):
-        bot.send_message(message.chat.id, "❌ Нельзя дуэлиться с самим собой!")
-        return
-    
-    target_user = get_user(target_uid)
-    
-    if target_user['money'] < bet:
-        bot.send_message(message.chat.id, f"❌ У {target} не хватает {bet} шекелей!")
-        return
-    
-    duel_id = str(int(time.time()))
-    duels[duel_id] = {
-        'player1': uid,
-        'player2': target_uid,
-        'bet': bet,
-        'status': 'waiting',
-        'chat_id': message.chat.id
-    }
-    
-    user['money'] -= bet
-    target_user['money'] -= bet
-    save_data()
-    
-    kb = telebot.types.InlineKeyboardMarkup()
-    kb.add(
-        telebot.types.InlineKeyboardButton("✅ ПРИНЯТЬ", callback_data=f'duel_accept_{duel_id}'),
-        telebot.types.InlineKeyboardButton("❌ ОТКАЗАТЬ", callback_data=f'duel_decline_{duel_id}')
-    )
-    
-    bot.send_message(message.chat.id, 
-        f"🥊 ДУЭЛЬ 🥊\n\n"
-        f"👤 @{message.from_user.username} вызывает @{target_name}!\n"
-        f"💰 Ставка: {bet} шекелей\n\n"
-        f"У обоих списано {bet} шекелей.\n"
-        f"Победитель забирает {bet * 2}!",
-        reply_markup=kb)
-    
-    try:
-        bot.send_message(int(target_uid), 
-            f"🥊 ВЫЗОВ НА ДУЭЛЬ! 🥊\n\n"
-            f"@{message.from_user.username} вызвал тебя!\n"
-            f"💰 Ставка: {bet} шекелей\n\n"
-            f"Нажми кнопку в группе!")
-    except:
-        pass
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('duel_'))
-def duel_callback(call):
-    action, duel_id = call.data.split('_')[1], call.data.split('_')[2]
-    uid = call.from_user.id
-    duel = duels.get(duel_id)
-    
-    if not duel:
-        bot.answer_callback_query(call.id, "❌ Дуэль не найдена!", show_alert=True)
-        return
-    
-    if action == 'accept':
-        if uid != duel['player2']:
-            bot.answer_callback_query(call.id, "❌ Это не твоя дуэль!", show_alert=True)
-            return
-        
-        if duel['status'] != 'waiting':
-            bot.answer_callback_query(call.id, "❌ Дуэль уже завершена!", show_alert=True)
-            return
-        
-        duel['status'] = 'active'
-        duels[duel_id] = duel
-        
-        player1 = get_user(duel['player1'])
-        player2 = get_user(duel['player2'])
-        
-        roll1 = random.randint(1, 6)
-        roll2 = random.randint(1, 6)
-        
-        msg = f"🎲 РЕЗУЛЬТАТ ДУЭЛИ 🎲\n\n"
-        msg += f"🥊 @{player1['username']} vs @{player2['username']}\n"
-        msg += f"💰 Ставка: {duel['bet']} шекелей\n\n"
-        msg += f"🎲 @{player1['username']} выбросил: {roll1}\n"
-        msg += f"🎲 @{player2['username']} выбросил: {roll2}\n\n"
-        
-        if roll1 > roll2:
-            player1['money'] += duel['bet'] * 2
-            msg += f"🏆 ПОБЕДИТЕЛЬ: @{player1['username']} 🏆\n"
-            msg += f"💰 Выигрыш: +{duel['bet'] * 2} шекелей!"
-        elif roll2 > roll1:
-            player2['money'] += duel['bet'] * 2
-            msg += f"🏆 ПОБЕДИТЕЛЬ: @{player2['username']} 🏆\n"
-            msg += f"💰 Выигрыш: +{duel['bet'] * 2} шекелей!"
-        else:
-            player1['money'] += duel['bet']
-            player2['money'] += duel['bet']
-            msg += f"🤝 НИЧЬЯ! 🤝\n"
-            msg += f"💰 Деньги возвращены обоим!"
-        
-        save_data()
-        bot.edit_message_text(msg, duel['chat_id'], call.message.message_id)
-        bot.answer_callback_query(call.id, "✅ Дуэль принята!", show_alert=True)
-        del duels[duel_id]
-        
-    elif action == 'decline':
-        if uid != duel['player2']:
-            bot.answer_callback_query(call.id, "❌ Это не твоя дуэль!", show_alert=True)
-            return
-        
-        if duel['status'] != 'waiting':
-            bot.answer_callback_query(call.id, "❌ Дуэль уже завершена!", show_alert=True)
-            return
-        
-        player1 = get_user(duel['player1'])
-        player2 = get_user(duel['player2'])
-        player1['money'] += duel['bet']
-        player2['money'] += duel['bet']
-        save_data()
-        
-        bot.edit_message_text(f"❌ @{player2['username']} отказался от дуэли!\n💰 Деньги возвращены.", 
-                              duel['chat_id'], call.message.message_id)
-        bot.answer_callback_query(call.id, "❌ Ты отказался!", show_alert=True)
-        del duels[duel_id]
-
-# ========== СЛОТЫ 3x3 ==========
-
-@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['слоты', 'слот', 'казик'])
-def slots_menu_cmd(message):
-    uid = message.from_user.id
-    slot_games[uid] = True
-    kb = telebot.types.InlineKeyboardMarkup(row_width=3)
-    kb.add(
-        telebot.types.InlineKeyboardButton("10", callback_data='slot_10'),
-        telebot.types.InlineKeyboardButton("50", callback_data='slot_50'),
-        telebot.types.InlineKeyboardButton("100", callback_data='slot_100')
-    )
-    bot.send_message(message.chat.id, "🎰 ВЫБЕРИ СТАВКУ:", reply_markup=kb)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('slot_'))
-def slots_play_callback(call):
-    uid = call.from_user.id
-    if uid not in slot_games:
-        bot.answer_callback_query(call.id, "❌ Нажми 'Слоты' сначала!", show_alert=True)
-        return
-    bet = int(call.data.split('_')[1])
-    user = get_user(uid, call.from_user.username)
-    if user['money'] < bet:
-        bot.answer_callback_query(call.id, f"❌ Не хватает {bet}!", show_alert=True)
-        del slot_games[uid]
-        return
-    user['money'] -= bet
-    icons = ['🍒', '🍊', '🍋', '🍉', '🍇', '💰', '💎', '🎰', '7']
-    grid = [[random.choice(icons) for _ in range(3)] for _ in range(3)]
-    win = 0
-    if grid[0][0] == grid[1][1] == grid[2][2]:
-        win = bet * 3
-    if grid[0][2] == grid[1][1] == grid[2][0]:
-        win = bet * 3
-    for row in grid:
-        if row[0] == row[1] == row[2]:
-            if row[0] in ['7', '🎰']:
-                win = max(win, bet * 10)
-            elif row[0] in ['💰', '💎']:
-                win = max(win, bet * 5)
-            else:
-                win = max(win, bet * 2)
-    for col in range(3):
-        if grid[0][col] == grid[1][col] == grid[2][col]:
-            if grid[0][col] in ['7', '🎰']:
-                win = max(win, bet * 10)
-            elif grid[0][col] in ['💰', '💎']:
-                win = max(win, bet * 5)
-            else:
-                win = max(win, bet * 2)
-    display = ""
-    for row in grid:
-        display += f"│ {row[0]} │ {row[1]} │ {row[2]} │\n"
-    if win > 0:
-        user['money'] += win
-        user['total_earned'] += win
-        add_exp(uid, win // 4)
-        result = f"✨ ПОБЕДА! ✨\n💰 +{win} шекелей!"
-    else:
-        result = f"💔 ПРОИГРЫШ"
-    save_data()
-    msg = f"🎰 СЛОТЫ 3x3 🎰\n\n{display}\n{result}\n💵 Баланс: {user['money']}"
-    try:
-        bot.edit_message_text(msg, call.message.chat.id, call.message.message_id)
-    except:
-        bot.send_message(call.message.chat.id, msg)
-    bot.answer_callback_query(call.id)
-    del slot_games[uid]
+        bot.send_message(message.chat.id, f"❌ Промокод {promo} не найден!")
 
 # ========== РУЛЕТКА ==========
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['рулетка', 'рулетку'])
-def roulette_menu_cmd(message):
-    uid = message.from_user.id
+def roulette_menu(message):
     kb = telebot.types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        telebot.types.InlineKeyboardButton("🔴 КРАСНОЕ", callback_data='roulette_red'),
-        telebot.types.InlineKeyboardButton("⚫ ЧЕРНОЕ", callback_data='roulette_black')
+        telebot.types.InlineKeyboardButton("🔴 КРАСНОЕ", callback_data='roul_red'),
+        telebot.types.InlineKeyboardButton("⚫ ЧЕРНОЕ", callback_data='roul_black'),
+        telebot.types.InlineKeyboardButton("🟢 ЗЕЛЕНЫЙ", callback_data='roul_green'),
+        telebot.types.InlineKeyboardButton("📊 ЧЕТ", callback_data='roul_even'),
+        telebot.types.InlineKeyboardButton("📊 НЕЧЕТ", callback_data='roul_odd')
     )
-    kb.add(
-        telebot.types.InlineKeyboardButton("🟢 ЗЕЛЕНЫЙ", callback_data='roulette_green'),
-        telebot.types.InlineKeyboardButton("📊 ЧЕТ", callback_data='roulette_even')
-    )
-    kb.add(
-        telebot.types.InlineKeyboardButton("📊 НЕЧЕТ", callback_data='roulette_odd')
-    )
-    bot.send_message(message.chat.id, "🎡 РУЛЕТКА 🎡\n\nВыбери тип ставки:", reply_markup=kb)
+    bot.send_message(message.chat.id, "🎡 РУЛЕТКА 🎡\nВыбери тип ставки:", reply_markup=kb)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('roulette_'))
-def roulette_bet_callback(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith('roul_'))
+def roulette_bet(call):
     uid = call.from_user.id
     bet_type = call.data.split('_')[1]
     roulette_waiting[uid] = bet_type
@@ -611,7 +519,7 @@ def roulette_bet_callback(call):
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda m: m.from_user.id in roulette_waiting)
-def roulette_bet_amount(message):
+def roulette_amount(message):
     uid = message.from_user.id
     bet_type = roulette_waiting[uid]
     try:
@@ -623,23 +531,24 @@ def roulette_bet_amount(message):
         bot.send_message(message.chat.id, "❌ Введи число!")
         del roulette_waiting[uid]
         return
+    
     user = get_user(uid, message.from_user.username)
     if user['money'] < bet:
         bot.send_message(message.chat.id, f"❌ Не хватает {bet}!")
         del roulette_waiting[uid]
         return
+    
     user['money'] -= bet
     save_data()
+    
     num = random.randint(0, 36)
     if num == 0:
-        color = 'green'
-        color_emoji = '🟢'
+        color, emoji = 'green', '🟢'
     elif num in [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]:
-        color = 'red'
-        color_emoji = '🔴'
+        color, emoji = 'red', '🔴'
     else:
-        color = 'black'
-        color_emoji = '⚫'
+        color, emoji = 'black', '⚫'
+    
     win = 0
     if bet_type == 'red' and color == 'red':
         win = bet * 2
@@ -651,66 +560,56 @@ def roulette_bet_amount(message):
         win = bet * 2
     elif bet_type == 'odd' and num > 0 and num % 2 == 1:
         win = bet * 2
-    bet_names = {'red': '🔴 КРАСНОЕ', 'black': '⚫ ЧЕРНОЕ', 'green': '🟢 ЗЕЛЕНЫЙ', 'even': '📊 ЧЕТ', 'odd': '📊 НЕЧЕТ'}
+    
+    names = {'red':'КРАСНОЕ', 'black':'ЧЕРНОЕ', 'green':'ЗЕЛЕНЫЙ', 'even':'ЧЕТ', 'odd':'НЕЧЕТ'}
+    
     if win > 0:
         user['money'] += win
         user['total_earned'] += win
         add_exp(uid, win // 4)
-        save_data()
-        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 Выпало: {color_emoji} {num}\n🎯 Ставка: {bet_names[bet_type]} {bet}\n💰 ВЫИГРЫШ: +{win} 💰\n💵 Баланс: {user['money']}"
+        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💰 ВЫИГРЫШ: +{win}\n💵 Баланс: {user['money']}"
     else:
-        save_data()
-        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 Выпало: {color_emoji} {num}\n🎯 Ставка: {bet_names[bet_type]} {bet}\n💔 ПРОИГРЫШ 💔\n💵 Баланс: {user['money']}"
+        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 {emoji} {num}\n🎯 {names[bet_type]} {bet}\n💔 ПРОИГРЫШ\n💵 Баланс: {user['money']}"
+    
+    save_data()
     bot.send_message(message.chat.id, msg)
     del roulette_waiting[uid]
 
-# ========== БЛЕКДЖЕК С ЭМОДЗИ ==========
+# ========== БЛЕКДЖЕК ==========
 
-def card_value(card):
-    if card in ['J', 'Q', 'K']:
-        return 10
-    elif card == 'A':
-        return 11
-    else:
-        return int(card)
+def card_val(c):
+    if c in ['J', 'Q', 'K']: return 10
+    elif c == 'A': return 11
+    else: return int(c)
 
-def hand_score(hand):
-    score = 0
-    aces = 0
-    for c in hand:
-        if c in ['J', 'Q', 'K']:
-            score += 10
-        elif c == 'A':
-            aces += 1
-            score += 11
-        else:
-            score += int(c)
-    while score > 21 and aces > 0:
-        score -= 10
+def hand_sum(hand):
+    s = sum(card_val(c) for c in hand)
+    aces = hand.count('A')
+    while s > 21 and aces > 0:
+        s -= 10
         aces -= 1
-    return score
+    return s
 
 def new_deck():
-    deck = []
+    d = []
     for _ in range(4):
-        for c in ['2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','👑','👸','🤴','🅰️']:
-            deck.append(c)
-    random.shuffle(deck)
-    return deck
+        for c in ['2','3','4','5','6','7','8','9','10','J','Q','K','A']:
+            d.append(c)
+    random.shuffle(d)
+    return d
 
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ['блекджек', 'блек джек', 'blackjack', '21'])
-def bj_start_cmd(message):
-    uid = message.from_user.id
+def bj_start(message):
     kb = telebot.types.InlineKeyboardMarkup()
     kb.add(
         telebot.types.InlineKeyboardButton("🔟", callback_data='bj_10'),
         telebot.types.InlineKeyboardButton("5️⃣0️⃣", callback_data='bj_50'),
         telebot.types.InlineKeyboardButton("1️⃣0️⃣0️⃣", callback_data='bj_100')
     )
-    bot.send_message(message.chat.id, "🃏 ВЫБЕРИ СТАВКУ 🃏", reply_markup=kb)
+    bot.send_message(message.chat.id, "🃏 ВЫБЕРИ СТАВКУ", reply_markup=kb)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('bj_') and len(call.data) < 7)
-def bj_new_game(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith('bj_'))
+def bj_new(call):
     uid = call.from_user.id
     bet = int(call.data.split('_')[1])
     user = get_user(uid, call.from_user.username)
@@ -720,125 +619,92 @@ def bj_new_game(call):
     user['money'] -= bet
     save_data()
     deck = new_deck()
-    player_hand = [deck.pop(), deck.pop()]
-    dealer_hand = [deck.pop(), deck.pop()]
     bj_games[uid] = {
-        'bet': bet,
-        'player': player_hand,
-        'dealer': dealer_hand,
-        'deck': deck,
-        'chat_id': call.message.chat.id,
-        'msg_id': call.message.message_id
+        'bet': bet, 'player': [deck.pop(), deck.pop()], 'dealer': [deck.pop(), deck.pop()],
+        'deck': deck, 'chat_id': call.message.chat.id, 'msg_id': call.message.message_id
     }
-    bj_show_game(call.message.chat.id, uid, call.message.message_id)
+    bj_show(call.message.chat.id, uid, call.message.message_id)
     bot.answer_callback_query(call.id)
 
-def bj_show_game(chat_id, uid, msg_id):
-    game = bj_games.get(uid)
-    if not game:
-        return
-    ps = hand_score(game['player'])
-    ds = hand_score([game['dealer'][0]])
-    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
-    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
-    msg += f"👨‍💼 ДИЛЕР: {game['dealer'][0]} | ❓\n"
-    msg += f"⭐ ОЧКИ: *{ds}* + ? ⭐\n\n"
-    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
-    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n"
+def bj_show(chat_id, uid, msg_id):
+    g = bj_games.get(uid)
+    if not g: return
+    ps = hand_sum(g['player'])
+    ds = hand_sum([g['dealer'][0]])
+    msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {g['dealer'][0]} | ?\n⭐ {ds} + ?\n\n"
+    msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}"
     kb = telebot.types.InlineKeyboardMarkup()
     kb.add(
-        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ 🎴", callback_data='bj_hit'),
-        telebot.types.InlineKeyboardButton("✋ ХВАТИТ ✋", callback_data='bj_stand')
+        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data='bj_hit'),
+        telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data='bj_stand')
     )
     try:
-        bot.edit_message_text(msg, chat_id, msg_id, parse_mode='Markdown', reply_markup=kb)
-    except:
-        pass
+        bot.edit_message_text(msg, chat_id, msg_id, reply_markup=kb)
+    except: pass
 
 @bot.callback_query_handler(func=lambda call: call.data == 'bj_hit')
-def bj_hit_callback(call):
+def bj_hit(call):
     uid = call.from_user.id
-    game = bj_games.get(uid)
-    if not game:
+    g = bj_games.get(uid)
+    if not g:
         bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
         return
-    card = game['deck'].pop()
-    game['player'].append(card)
-    ps = hand_score(game['player'])
+    card = g['deck'].pop()
+    g['player'].append(card)
+    ps = hand_sum(g['player'])
     if ps > 21:
-        msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
-        msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
-        msg += f"🎲 ТВОИ КАРТЫ: {' '.join(game['player'])} 🎲\n"
-        msg += f"⭐ ОЧКИ: *{ps}* ❌ *ПЕРЕБОР!* ❌\n\n"
-        msg += f"💔 *ТЫ ПРОИГРАЛ* {game['bet']}! 💔"
+        msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n🎲 {' '.join(g['player'])}\n⭐ {ps} ❌ ПЕРЕБОР!\n\n💔 ТЫ ПРОИГРАЛ {g['bet']}!"
         try:
-            bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown')
-        except:
-            pass
+            bot.edit_message_text(msg, g['chat_id'], g['msg_id'])
+        except: pass
         bot.answer_callback_query(call.id, "ПЕРЕБОР!", show_alert=True)
         del bj_games[uid]
         return
-    bj_games[uid] = game
-    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
-    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
-    msg += f"👨‍💼 ДИЛЕР: {game['dealer'][0]} | ❓\n"
-    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
-    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n"
+    bj_games[uid] = g
+    msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {g['dealer'][0]} | ?\n"
+    msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}"
     kb = telebot.types.InlineKeyboardMarkup()
     kb.add(
-        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ 🎴", callback_data='bj_hit'),
-        telebot.types.InlineKeyboardButton("✋ ХВАТИТ ✋", callback_data='bj_stand')
+        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ", callback_data='bj_hit'),
+        telebot.types.InlineKeyboardButton("✋ ХВАТИТ", callback_data='bj_stand')
     )
     try:
-        bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown', reply_markup=kb)
-    except:
-        pass
+        bot.edit_message_text(msg, g['chat_id'], g['msg_id'], reply_markup=kb)
+    except: pass
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'bj_stand')
-def bj_stand_callback(call):
+def bj_stand(call):
     uid = call.from_user.id
-    game = bj_games.get(uid)
-    if not game:
+    g = bj_games.get(uid)
+    if not g:
         bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
         return
-    ps = hand_score(game['player'])
-    ds = hand_score(game['dealer'])
+    ps = hand_sum(g['player'])
+    ds = hand_sum(g['dealer'])
     while ds < 17:
-        card = game['deck'].pop()
-        game['dealer'].append(card)
-        ds = hand_score(game['dealer'])
+        ds = hand_sum(g['dealer'])
     user = get_user(uid, call.from_user.username)
-    if ds > 21:
-        win = game['bet'] * 2
+    if ds > 21 or ps > ds:
+        win = g['bet'] * 2
         user['money'] += win
         user['total_earned'] += win
         add_exp(uid, win // 4)
-        res = f"🎉 ПОБЕДА! 🎉\n💰 +{win} шекелей! 💰"
-    elif ps > ds:
-        win = game['bet'] * 2
-        user['money'] += win
-        user['total_earned'] += win
-        add_exp(uid, win // 4)
-        res = f"🎉 ПОБЕДА! 🎉\n💰 +{win} шекелей! 💰"
+        res = f"🎉 ПОБЕДА! +{win}"
     elif ps < ds:
-        res = f"💔 ПРОИГРЫШ! 💔\n😭 -{game['bet']} шекелей! 😭"
+        res = f"💔 ПРОИГРЫШ! -{g['bet']}"
     else:
-        user['money'] += game['bet']
-        res = f"🤝 НИЧЬЯ! 🤝\n💰 +{game['bet']} шекелей! 💰"
+        user['money'] += g['bet']
+        res = f"🤝 НИЧЬЯ! +{g['bet']}"
     save_data()
-    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
-    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
-    msg += f"👨‍💼 ДИЛЕР: {' '.join(game['dealer'])} 👨‍💼\n"
-    msg += f"⭐ ОЧКИ: *{ds}* ⭐\n\n"
-    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
-    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n\n"
-    msg += f"{res}\n"
-    msg += f"💰 БАЛАНС: *{user['money']}* 💰"
+    msg = f"🃏 БЛЕК ДЖЕК 🃏\n\n💰 СТАВКА: {g['bet']}\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {' '.join(g['dealer'])}\n⭐ {ds}\n\n"
+    msg += f"🎲 ТЫ: {' '.join(g['player'])}\n⭐ {ps}\n\n{res}\n💰 БАЛАНС: {user['money']}"
     try:
-        bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown')
-    except:
-        pass
+        bot.edit_message_text(msg, g['chat_id'], g['msg_id'])
+    except: pass
     bot.answer_callback_query(call.id)
     del bj_games[uid]
 
@@ -847,11 +713,8 @@ def bj_stand_callback(call):
 load_data()
 print("=" * 50)
 print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
-print("Слоты 3x3 - работают")
-print("Рулетка - работает")
-print("Блекджек - работает")
+print("Слоты с анимацией - работают")
 print("Дуэли - работают")
-print("Провалы на работе - включены (5%)")
 print("=" * 50)
 
 bot.infinity_polling()
