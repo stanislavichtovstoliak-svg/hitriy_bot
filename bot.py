@@ -5,16 +5,15 @@ import os
 from datetime import datetime
 import time
 
-# ===== ТОКЕН (ПРЯМО В КОДЕ) =====
-TOKEN = '8672284943:AAGr068cDybidNBehyS0Dcst5wj0BcGjLAU'
-# =================================
+# ===== ТОКЕН =====
+TOKEN = '8672284943:AAGrO68cDybiidNBehyS0Dcst5wj0BcGjLAU'
+# =================
 
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = 'users.json'
 active_menus = {}
 bj_games = {}
-last_command_time = {}
 
 LEVELS = {
     1: {"name": "Грузчик", "salary_min": 5, "salary_max": 50, "exp_needed": 0},
@@ -39,7 +38,7 @@ def save_users(users):
 
 users = load_users()
 
-def get_user(user_id):
+def get_user(user_id, username=None):
     user_id = str(user_id)
     if user_id not in users:
         users[user_id] = {
@@ -48,13 +47,51 @@ def get_user(user_id):
             'exp': 0,
             'total_exp': 0,
             'last_work': None,
-            'username': None,
+            'username': username,
             'total_earned': 0,
             'last_daily': None,
             'daily_streak': 0
         }
         save_users(users)
+    else:
+        # Обновляем юзернейм если он изменился
+        if username and users[user_id].get('username') != username:
+            users[user_id]['username'] = username
+            save_users(users)
     return users[user_id]
+
+def get_level_info(level):
+    return LEVELS.get(level, LEVELS[1])
+
+def add_exp(user_id, amount):
+    user = get_user(user_id)
+    user['total_exp'] += amount
+    user['exp'] += amount
+    
+    current_level = user['level']
+    for lvl in range(current_level + 1, 9):
+        if user['total_exp'] >= LEVELS[lvl]['exp_needed']:
+            user['level'] = lvl
+        else:
+            break
+    
+    if user['level'] > current_level:
+        save_users(users)
+        return True
+    save_users(users)
+    return False
+
+def get_top_players(limit=10):
+    sorted_users = []
+    for user_id, data in users.items():
+        name = data.get('username', 'Игрок')
+        sorted_users.append({
+            'name': name,
+            'money': data['money'],
+            'level': data.get('level', 1)
+        })
+    sorted_users.sort(key=lambda x: x['money'], reverse=True)
+    return sorted_users[:limit]
 
 def keyboard():
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -63,21 +100,48 @@ def keyboard():
     kb.add('🎰 Слоты', '🃏 Блек Джек')
     return kb
 
-@bot.message_handler(commands=['start'])
-def start(message):
+# ===== ОБРАБОТЧИК ВСЕХ СООБЩЕНИЙ =====
+
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def handle_all_messages(message):
     user_id = message.from_user.id
-    user = get_user(user_id)
-    user['username'] = message.from_user.username
-    save_users(users)
+    username = message.from_user.username
+    text = message.text.lower().strip()
+    
+    # АВТОМАТИЧЕСКОЕ СОЗДАНИЕ/ОБНОВЛЕНИЕ ПРОФИЛЯ
+    user = get_user(user_id, username)
+    
+    # Команды
+    if text in ['/start', 'start']:
+        start_command(message, user)
+    elif text in ['работа', 'фарм', 'фармить', 'работка', '🌾 работа']:
+        work_command(message, user)
+    elif text in ['баланс', 'деньги', 'бабло', 'шекели', '💰 баланс']:
+        balance_command(message, user)
+    elif text in ['профиль', 'стата', 'инфо', '📊 профиль']:
+        profile_command(message, user)
+    elif text in ['топ', 'топ10', 'лидеры', 'богатые', '🏆 топ']:
+        top_command(message)
+    elif text in ['бонус', 'ежедневный', 'daily', '🎁 бонус']:
+        daily_bonus_command(message, user)
+    elif text in ['слоты', 'слот', 'казик', '🎰 слоты']:
+        slots_menu_command(message)
+    elif text in ['блекджек', 'блек джек', 'blackjack', '21', '🃏 блек джек']:
+        bj_menu_command(message)
+
+# ===== КОМАНДЫ =====
+
+def start_command(message, user):
+    level_info = get_level_info(user['level'])
     
     bot.send_message(
         message.chat.id,
         f"🎮 ХИТРЫЙ ЕВРЕЙ 🎮\n\n"
         f"💰 Стартовый капитал: 500 шекелей\n"
-        f"📊 Твой уровень: {user['level']} - {LEVELS[user['level']]['name']}\n\n"
-        f"📝 КОМАНДЫ:\n"
-        f"• Работа - заработать (КД 10 мин)\n"
-        f"• Бонус - ежедневный (КД 12 ч)\n"
+        f"📊 Твой уровень: {user['level']} - {level_info['name']}\n\n"
+        f"📝 КОМАНДЫ (можно писать словами):\n"
+        f"• Работа / фарм - заработать (КД 10 мин)\n"
+        f"• Бонус / ежедневный - получить бонус (КД 12 ч)\n"
         f"• Баланс - проверить деньги\n"
         f"• Профиль - твоя стата\n"
         f"• Топ - богатые игроки\n"
@@ -86,40 +150,92 @@ def start(message):
         reply_markup=keyboard()
     )
 
-@bot.message_handler(func=lambda m: m.text == '💰 Баланс')
-def balance(message):
-    user = get_user(message.from_user.id)
-    bot.send_message(
-        message.chat.id,
-        f"💰 Баланс: {user['money']} шекелей\n"
-        f"📊 Уровень: {user['level']} - {LEVELS[user['level']]['name']}"
-    )
-
-@bot.message_handler(func=lambda m: m.text == '📊 Профиль')
-def profile(message):
-    user = get_user(message.from_user.id)
-    msg = f"📊 ПРОФИЛЬ 📊\n\n"
-    msg += f"👤 Игрок: @{user['username'] or 'Нет имени'}\n"
-    msg += f"🏆 Уровень: {user['level']} - {LEVELS[user['level']]['name']}\n"
-    msg += f"💰 Денег: {user['money']} шекелей\n"
-    msg += f"⭐ Опыт: {user['exp']}\n"
-    msg += f"📈 Всего заработал: {user['total_earned']}"
+def work_command(message, user):
+    level_info = get_level_info(user['level'])
+    
+    if user['last_work']:
+        last = datetime.fromisoformat(user['last_work'])
+        diff = (datetime.now() - last).total_seconds()
+        if diff < 600:
+            rem = 600 - diff
+            minutes = int(rem // 60)
+            seconds = int(rem % 60)
+            bot.send_message(message.chat.id, f"⏰ Отдыхай {minutes} мин {seconds} сек")
+            return
+    
+    earned = random.randint(level_info['salary_min'], level_info['salary_max'])
+    user['money'] += earned
+    user['total_earned'] += earned
+    user['last_work'] = datetime.now().isoformat()
+    
+    exp_earned = earned // 2
+    level_up = add_exp(message.from_user.id, exp_earned)
+    save_users(users)
+    
+    msg = f"🌾 ТЫ ПОРАБОТАЛ!\n\n"
+    msg += f"💼 {level_info['name']}\n"
+    msg += f"💰 +{earned} шекелей\n"
+    msg += f"⭐ +{exp_earned} опыта\n"
+    msg += f"💵 Теперь: {user['money']}"
+    
+    if level_up:
+        new_level = get_level_info(user['level'])
+        msg += f"\n\n🎉 НОВЫЙ УРОВЕНЬ! 🎉\n"
+        msg += f"Теперь ты {user['level']} - {new_level['name']}"
+    
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda m: m.text == '🏆 Топ')
+def balance_command(message, user):
+    level_info = get_level_info(user['level'])
+    bot.send_message(
+        message.chat.id,
+        f"💰 ТВОЙ БАЛАНС 💰\n\n"
+        f"Денег: {user['money']} шекелей\n"
+        f"Уровень: {user['level']} ({level_info['name']})\n"
+        f"Опыт: {user['exp']}\n"
+        f"Всего заработал: {user['total_earned']}"
+    )
+
+def profile_command(message, user):
+    level_info = get_level_info(user['level'])
+    
+    next_level = user['level'] + 1
+    if next_level in LEVELS:
+        need = LEVELS[next_level]['exp_needed']
+        have = user['total_exp']
+        left = need - have
+        if need > 0:
+            prog = int((have / need) * 100)
+        else:
+            prog = 100
+    else:
+        left = 0
+        prog = 100
+    
+    streak = user.get('daily_streak', 0)
+    username = user.get('username') or message.from_user.username or 'Нет имени'
+    
+    msg = f"📊 ТВОЙ ПРОФИЛЬ 📊\n\n"
+    msg += f"👤 Игрок: @{username}\n"
+    msg += f"🏆 Уровень: {user['level']} - {level_info['name']}\n"
+    msg += f"💰 Денег: {user['money']} шекелей\n"
+    msg += f"⭐ Опыт: {user['exp']}\n"
+    msg += f"📈 Всего заработал: {user['total_earned']}\n"
+    msg += f"🎁 Серия бонусов: {streak} дней"
+    
+    if left > 0:
+        msg += f"\n\n📊 До {next_level} уровня: {left} опыта ({prog}%)"
+    
+    bot.send_message(message.chat.id, msg)
+
 def top_command(message):
-    top = []
-    for uid, data in users.items():
-        name = data.get('username', 'Игрок')
-        top.append({'name': name, 'money': data['money']})
-    top.sort(key=lambda x: x['money'], reverse=True)
-    top = top[:10]
+    top = get_top_players(10)
     
     if not top:
         bot.send_message(message.chat.id, "🏆 Топ пока пуст!")
         return
     
-    msg = "🏆 ТОП БОГАТЫХ 🏆\n\n"
+    msg = "🏆 ТОП БОГАТЫХ ИГРОКОВ 🏆\n\n"
     for i, p in enumerate(top, 1):
         if i == 1:
             msg += f"👑 {i}. @{p['name']} - {p['money']} 💰\n"
@@ -129,65 +245,40 @@ def top_command(message):
             msg += f"🥉 {i}. @{p['name']} - {p['money']} 💰\n"
         else:
             msg += f"{i}. @{p['name']} - {p['money']} 💰\n"
+    
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda m: m.text == '🌾 Работа')
-def work(message):
-    user = get_user(message.from_user.id)
-    level = LEVELS[user['level']]
-    
-    if user['last_work']:
-        last = datetime.fromisoformat(user['last_work'])
-        diff = (datetime.now() - last).total_seconds()
-        if diff < 600:
-            rem = 600 - diff
-            m = int(rem // 60)
-            s = int(rem % 60)
-            bot.send_message(message.chat.id, f"⏰ Отдыхай {m} мин {s} сек")
-            return
-    
-    earned = random.randint(level['salary_min'], level['salary_max'])
-    user['money'] += earned
-    user['total_earned'] += earned
-    user['exp'] += earned // 2
-    user['last_work'] = datetime.now().isoformat()
-    
-    # Проверка повышения уровня
-    for lvl in range(user['level'] + 1, 9):
-        if user['total_earned'] >= LEVELS[lvl]['exp_needed']:
-            user['level'] = lvl
-        else:
-            break
-    
-    save_users(users)
-    bot.send_message(message.chat.id, f"🌾 +{earned} шекелей!\n💰 Баланс: {user['money']}")
-
-@bot.message_handler(func=lambda m: m.text == '🎁 Бонус')
-def daily_bonus(message):
-    user = get_user(message.from_user.id)
-    
+def daily_bonus_command(message, user):
     if user['last_daily']:
         last = datetime.fromisoformat(user['last_daily'])
         diff = (datetime.now() - last).total_seconds()
         if diff < 43200:
             hours = int((43200 - diff) // 3600)
             minutes = int(((43200 - diff) % 3600) // 60)
-            bot.send_message(message.chat.id, f"🎁 Бонус через {hours} ч {minutes} мин")
+            bot.send_message(message.chat.id, f"🎁 Бонус через {hours} ч {minutes} мин\n🔥 Серия: {user.get('daily_streak', 0)} дней")
             return
     
     bonus = random.randint(50, 200)
     user['money'] += bonus
     user['total_earned'] += bonus
     user['last_daily'] = datetime.now().isoformat()
-    if 'daily_streak' not in user:
-        user['daily_streak'] = 0
-    user['daily_streak'] += 1
+    user['daily_streak'] = user.get('daily_streak', 0) + 1
+    
+    exp_gained = bonus // 3
+    add_exp(message.from_user.id, exp_gained)
     save_users(users)
     
-    bot.send_message(message.chat.id, f"🎁 +{bonus} шекелей!\n💰 Баланс: {user['money']}\n🔥 Серия: {user['daily_streak']} дней")
+    msg = f"🎁 ЕЖЕДНЕВНЫЙ БОНУС 🎁\n\n"
+    msg += f"💰 +{bonus} шекелей!\n"
+    msg += f"⭐ +{exp_gained} опыта\n"
+    msg += f"🔥 Серия: {user['daily_streak']} дней\n"
+    msg += f"💵 Баланс: {user['money']}"
+    
+    bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda m: m.text == '🎰 Слоты')
-def slots_menu(message):
+# ===== СЛОТЫ =====
+
+def slots_menu_command(message):
     user_id = message.from_user.id
     active_menus[user_id] = 'slots'
     
@@ -206,7 +297,7 @@ def slots_play(call):
         return
     
     bet = int(call.data.split('_')[1])
-    user = get_user(user_id)
+    user = get_user(user_id, call.from_user.username)
     
     if user['money'] < bet:
         bot.answer_callback_query(call.id, f"❌ Не хватает {bet}!", show_alert=True)
@@ -233,6 +324,7 @@ def slots_play(call):
     if win > 0:
         user['money'] += win
         user['total_earned'] += win
+        add_exp(user_id, win // 4)
         msg = f"✨ ПОБЕДА! +{win} ✨\n💰 {user['money']}"
     else:
         msg = f"💔 ПРОИГРЫШ\n💰 {user['money']}"
@@ -250,8 +342,9 @@ def slots_play(call):
     if user_id in active_menus:
         del active_menus[user_id]
 
-@bot.message_handler(func=lambda m: m.text == '🃏 Блек Джек')
-def bj_menu(message):
+# ===== БЛЕК ДЖЕК =====
+
+def bj_menu_command(message):
     user_id = message.from_user.id
     active_menus[user_id] = 'bj'
     
@@ -302,7 +395,7 @@ def bj_new(call):
         return
     
     bet = int(call.data.split('_')[1])
-    user = get_user(user_id)
+    user = get_user(user_id, call.from_user.username)
     
     if user['money'] < bet:
         bot.answer_callback_query(call.id, f"❌ Нужно {bet}!", show_alert=True)
@@ -426,17 +519,19 @@ def bj_stand(call):
         g['dealer'].append(card)
         ds = hand_score(g['dealer'])
     
-    user = get_user(user_id)
+    user = get_user(user_id, call.from_user.username)
     
     if ds > 21:
         win = g['bet'] * 2
         user['money'] += win
         user['total_earned'] += win
+        add_exp(user_id, win // 4)
         res = f"🎉 ПОБЕДА! +{win}"
     elif ps > ds:
         win = g['bet'] * 2
         user['money'] += win
         user['total_earned'] += win
+        add_exp(user_id, win // 4)
         res = f"🎉 ПОБЕДА! +{win}"
     elif ps < ds:
         res = f"💔 ПРОИГРЫШ! -{g['bet']}"
@@ -463,7 +558,12 @@ def bj_stand(call):
     bot.answer_callback_query(call.id)
     del bj_games[user_id]
 
+# ===== ЗАПУСК =====
+
+print("=" * 40)
 print("🤖 ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
-print(f"💬 Бот: @{bot.get_me().username}")
+print("✅ Профили создаются автоматически при любом сообщении")
+print("📝 Текстовые команды: работа, баланс, профиль, топ, бонус, слоты, блекджек")
+print("=" * 40)
 
 bot.infinity_polling()
