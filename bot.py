@@ -660,4 +660,198 @@ def roulette_bet_amount(message):
         msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 Выпало: {color_emoji} {num}\n🎯 Ставка: {bet_names[bet_type]} {bet}\n💰 ВЫИГРЫШ: +{win} 💰\n💵 Баланс: {user['money']}"
     else:
         save_data()
-        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 Выпало: {color_emoji} {num}\n🎯 Став
+        msg = f"🎡 РУЛЕТКА 🎡\n\n🎲 Выпало: {color_emoji} {num}\n🎯 Ставка: {bet_names[bet_type]} {bet}\n💔 ПРОИГРЫШ 💔\n💵 Баланс: {user['money']}"
+    bot.send_message(message.chat.id, msg)
+    del roulette_waiting[uid]
+
+# ========== БЛЕКДЖЕК С ЭМОДЗИ ==========
+
+def card_value(card):
+    if card in ['J', 'Q', 'K']:
+        return 10
+    elif card == 'A':
+        return 11
+    else:
+        return int(card)
+
+def hand_score(hand):
+    score = 0
+    aces = 0
+    for c in hand:
+        if c in ['J', 'Q', 'K']:
+            score += 10
+        elif c == 'A':
+            aces += 1
+            score += 11
+        else:
+            score += int(c)
+    while score > 21 and aces > 0:
+        score -= 10
+        aces -= 1
+    return score
+
+def new_deck():
+    deck = []
+    for _ in range(4):
+        for c in ['2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','👑','👸','🤴','🅰️']:
+            deck.append(c)
+    random.shuffle(deck)
+    return deck
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower() in ['блекджек', 'блек джек', 'blackjack', '21'])
+def bj_start_cmd(message):
+    uid = message.from_user.id
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("🔟", callback_data='bj_10'),
+        telebot.types.InlineKeyboardButton("5️⃣0️⃣", callback_data='bj_50'),
+        telebot.types.InlineKeyboardButton("1️⃣0️⃣0️⃣", callback_data='bj_100')
+    )
+    bot.send_message(message.chat.id, "🃏 ВЫБЕРИ СТАВКУ 🃏", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('bj_') and len(call.data) < 7)
+def bj_new_game(call):
+    uid = call.from_user.id
+    bet = int(call.data.split('_')[1])
+    user = get_user(uid, call.from_user.username)
+    if user['money'] < bet:
+        bot.answer_callback_query(call.id, f"❌ Не хватает {bet}!", show_alert=True)
+        return
+    user['money'] -= bet
+    save_data()
+    deck = new_deck()
+    player_hand = [deck.pop(), deck.pop()]
+    dealer_hand = [deck.pop(), deck.pop()]
+    bj_games[uid] = {
+        'bet': bet,
+        'player': player_hand,
+        'dealer': dealer_hand,
+        'deck': deck,
+        'chat_id': call.message.chat.id,
+        'msg_id': call.message.message_id
+    }
+    bj_show_game(call.message.chat.id, uid, call.message.message_id)
+    bot.answer_callback_query(call.id)
+
+def bj_show_game(chat_id, uid, msg_id):
+    game = bj_games.get(uid)
+    if not game:
+        return
+    ps = hand_score(game['player'])
+    ds = hand_score([game['dealer'][0]])
+    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
+    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {game['dealer'][0]} | ❓\n"
+    msg += f"⭐ ОЧКИ: *{ds}* + ? ⭐\n\n"
+    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
+    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n"
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ 🎴", callback_data='bj_hit'),
+        telebot.types.InlineKeyboardButton("✋ ХВАТИТ ✋", callback_data='bj_stand')
+    )
+    try:
+        bot.edit_message_text(msg, chat_id, msg_id, parse_mode='Markdown', reply_markup=kb)
+    except:
+        pass
+
+@bot.callback_query_handler(func=lambda call: call.data == 'bj_hit')
+def bj_hit_callback(call):
+    uid = call.from_user.id
+    game = bj_games.get(uid)
+    if not game:
+        bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
+        return
+    card = game['deck'].pop()
+    game['player'].append(card)
+    ps = hand_score(game['player'])
+    if ps > 21:
+        msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
+        msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
+        msg += f"🎲 ТВОИ КАРТЫ: {' '.join(game['player'])} 🎲\n"
+        msg += f"⭐ ОЧКИ: *{ps}* ❌ *ПЕРЕБОР!* ❌\n\n"
+        msg += f"💔 *ТЫ ПРОИГРАЛ* {game['bet']}! 💔"
+        try:
+            bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown')
+        except:
+            pass
+        bot.answer_callback_query(call.id, "ПЕРЕБОР!", show_alert=True)
+        del bj_games[uid]
+        return
+    bj_games[uid] = game
+    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
+    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {game['dealer'][0]} | ❓\n"
+    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
+    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n"
+    kb = telebot.types.InlineKeyboardMarkup()
+    kb.add(
+        telebot.types.InlineKeyboardButton("🎴 ЕЩЕ 🎴", callback_data='bj_hit'),
+        telebot.types.InlineKeyboardButton("✋ ХВАТИТ ✋", callback_data='bj_stand')
+    )
+    try:
+        bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown', reply_markup=kb)
+    except:
+        pass
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'bj_stand')
+def bj_stand_callback(call):
+    uid = call.from_user.id
+    game = bj_games.get(uid)
+    if not game:
+        bot.answer_callback_query(call.id, "❌ Игра не найдена!", show_alert=True)
+        return
+    ps = hand_score(game['player'])
+    ds = hand_score(game['dealer'])
+    while ds < 17:
+        card = game['deck'].pop()
+        game['dealer'].append(card)
+        ds = hand_score(game['dealer'])
+    user = get_user(uid, call.from_user.username)
+    if ds > 21:
+        win = game['bet'] * 2
+        user['money'] += win
+        user['total_earned'] += win
+        add_exp(uid, win // 4)
+        res = f"🎉 ПОБЕДА! 🎉\n💰 +{win} шекелей! 💰"
+    elif ps > ds:
+        win = game['bet'] * 2
+        user['money'] += win
+        user['total_earned'] += win
+        add_exp(uid, win // 4)
+        res = f"🎉 ПОБЕДА! 🎉\n💰 +{win} шекелей! 💰"
+    elif ps < ds:
+        res = f"💔 ПРОИГРЫШ! 💔\n😭 -{game['bet']} шекелей! 😭"
+    else:
+        user['money'] += game['bet']
+        res = f"🤝 НИЧЬЯ! 🤝\n💰 +{game['bet']} шекелей! 💰"
+    save_data()
+    msg = f"🃏 *БЛЕК ДЖЕК* 🃏\n\n"
+    msg += f"💰 СТАВКА: *{game['bet']}* 💰\n\n"
+    msg += f"👨‍💼 ДИЛЕР: {' '.join(game['dealer'])} 👨‍💼\n"
+    msg += f"⭐ ОЧКИ: *{ds}* ⭐\n\n"
+    msg += f"🎲 ТЫ: {' '.join(game['player'])} 🎲\n"
+    msg += f"⭐ ОЧКИ: *{ps}* ⭐\n\n"
+    msg += f"{res}\n"
+    msg += f"💰 БАЛАНС: *{user['money']}* 💰"
+    try:
+        bot.edit_message_text(msg, game['chat_id'], game['msg_id'], parse_mode='Markdown')
+    except:
+        pass
+    bot.answer_callback_query(call.id)
+    del bj_games[uid]
+
+# ========== ЗАПУСК ==========
+
+load_data()
+print("=" * 50)
+print("ХИТРЫЙ ЕВРЕЙ БОТ ЗАПУЩЕН!")
+print("Слоты 3x3 - работают")
+print("Рулетка - работает")
+print("Блекджек - работает")
+print("Дуэли - работают")
+print("Провалы на работе - включены (5%)")
+print("=" * 50)
+
+bot.infinity_polling()
